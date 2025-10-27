@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Calendar, IndianRupee, Clock, ChevronLeft, MapPin, Users, Check, Phone, Mail, Globe } from 'lucide-react';
 import { supabase, Package, PackageDate } from '../lib/supabase';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../contexts/AuthContext';
 
 export function PackageDetails() {
   const { id: packageId } = useParams<{ id: string }>();
@@ -147,10 +147,16 @@ export function PackageDetails() {
                   What's Included
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {inclusions.map((inclusion: string, index: number) => (
+                  {inclusions.map((inclusion: any, index: number) => (
                     <div key={index} className="flex items-start">
-                      <Check className="h-5 w-5 mr-2 text-green-600 flex-shrink-0 mt-0.5" />
-                      <span className="text-gray-700">{inclusion}</span>
+                      {typeof inclusion === 'object' && inclusion.icon ? (
+                        <span className="text-xl mr-2 flex-shrink-0">{inclusion.icon}</span>
+                      ) : (
+                        <Check className="h-5 w-5 mr-2 text-green-600 flex-shrink-0 mt-0.5" />
+                      )}
+                      <span className="text-gray-700">
+                        {typeof inclusion === 'object' ? inclusion.text : inclusion}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -161,10 +167,16 @@ export function PackageDetails() {
               <div className="mb-8 bg-blue-50 rounded-lg p-6">
                 <h2 className="text-xl font-semibold text-gray-800 mb-4">Facilities</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {facilities.map((facility: string, index: number) => (
+                  {facilities.map((facility: any, index: number) => (
                     <div key={index} className="flex items-start">
-                      <Check className="h-5 w-5 mr-2 text-blue-600 flex-shrink-0 mt-0.5" />
-                      <span className="text-gray-700">{facility}</span>
+                      {typeof facility === 'object' && facility.icon ? (
+                        <span className="text-xl mr-2 flex-shrink-0">{facility.icon}</span>
+                      ) : (
+                        <Check className="h-5 w-5 mr-2 text-blue-600 flex-shrink-0 mt-0.5" />
+                      )}
+                      <span className="text-gray-700">
+                        {typeof facility === 'object' ? facility.text : facility}
+                      </span>
                     </div>
                   ))}
                 </div>

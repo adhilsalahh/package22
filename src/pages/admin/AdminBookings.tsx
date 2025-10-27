@@ -1,186 +1,364 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '../../lib/supabase';
-import { CheckCircle, XCircle } from 'lucide-react';
+import {
+  ChevronLeft,
+  Calendar,
+  Users,
+  IndianRupee,
+  MessageCircle,
+  CheckCircle,
+  XCircle,
+  Clock,
+  Save,
+} from 'lucide-react';
+import { Booking } from '../../types';
+import { bookingService } from '../../services/bookingService';
 
-interface BookingWithDetails {
-  id: string;
-  travel_date: string;
-  total_amount: number;
-  advance_paid: boolean;
-  advance_amount: number;
-  status: string;
-  created_at: string;
-  package: { title: string } | null;
-  profile: { username: string; phone: string } | null;
+interface AdminBookingsProps {
+  onNavigate: (page: string) => void;
 }
 
-export default function AdminBookings() {
-  const [bookings, setBookings] = useState<BookingWithDetails[]>([]);
+export const AdminBookings = ({ onNavigate }: AdminBookingsProps) => {
+  const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<'all' | 'pending' | 'confirmed'>('all');
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [showDetails, setShowDetails] = useState(false);
+  const [adminNotes, setAdminNotes] = useState('');
+  const [whatsappLink, setWhatsappLink] = useState('');
 
   useEffect(() => {
     loadBookings();
   }, []);
 
-  async function loadBookings() {
+  const loadBookings = async () => {
     try {
-      const { data, error } = await supabase
-        .from('bookings')
-        .select(`
-          *,
-          package:packages(title),
-          profile:profiles(username, phone)
-        `)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setBookings(data || []);
-    } catch (error) {
-      console.error('Error loading bookings:', error);
+      const data = await bookingService.getAllBookings();
+      setBookings(data);
+    } catch (err) {
+      console.error(err);
     } finally {
       setLoading(false);
     }
-  }
+  };
 
-  async function confirmBooking(id: string) {
+  const handleViewDetails = (booking: Booking) => {
+    setSelectedBooking(booking);
+    setAdminNotes(booking.admin_notes || '');
+    setWhatsappLink(booking.whatsapp_conversation_link || '');
+    setShowDetails(true);
+  };
+
+  const handleUpdateStatus = async (bookingId: string, status: 'pending' | 'confirmed' | 'cancelled') => {
     try {
-      const { error } = await supabase
-        .from('bookings')
-        .update({ status: 'confirmed' })
-        .eq('id', id);
-
-      if (error) throw error;
+      await bookingService.updateBookingStatus(bookingId, status);
       loadBookings();
-      alert('Booking confirmed successfully');
-    } catch (error) {
-      console.error('Error confirming booking:', error);
-      alert('Failed to confirm booking');
+      if (selectedBooking?.id === bookingId) {
+        setShowDetails(false);
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Failed to update status');
     }
-  }
+  };
 
-  async function cancelBooking(id: string) {
-    if (!confirm('Are you sure you want to cancel this booking?')) return;
+  const handleSaveNotes = async () => {
+    if (!selectedBooking) return;
 
     try {
-      const { error } = await supabase
-        .from('bookings')
-        .update({ status: 'cancelled' })
-        .eq('id', id);
-
-      if (error) throw error;
+      await bookingService.updateBookingStatus(
+        selectedBooking.id,
+        selectedBooking.status,
+        adminNotes,
+        whatsappLink
+      );
+      alert('Notes saved successfully');
       loadBookings();
-    } catch (error) {
-      console.error('Error cancelling booking:', error);
-      alert('Failed to cancel booking');
+    } catch (err) {
+      console.error(err);
+      alert('Failed to save notes');
     }
-  }
+  };
 
-  const filteredBookings = bookings.filter((booking) => {
-    if (filter === 'all') return true;
-    return booking.status === filter;
-  });
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'confirmed':
+        return (
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+            <CheckCircle className="h-4 w-4 mr-1" />
+            Confirmed
+          </span>
+        );
+      case 'cancelled':
+        return (
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+            <XCircle className="h-4 w-4 mr-1" />
+            Cancelled
+          </span>
+        );
+      default:
+        return (
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
+            <Clock className="h-4 w-4 mr-1" />
+            Pending
+          </span>
+        );
+    }
+  };
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-gray-600 text-lg">Loading...</div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
+      </div>
+    );
+  }
+
+  if (showDetails && selectedBooking) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <button
+            onClick={() => setShowDetails(false)}
+            className="flex items-center text-emerald-600 hover:text-emerald-700 mb-6"
+          >
+            <ChevronLeft className="h-5 w-5" />
+            Back to Bookings
+          </button>
+
+          <div className="bg-white rounded-xl shadow-md p-6">
+            <div className="flex items-start justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">Booking Details</h2>
+                <p className="text-gray-600">ID: {selectedBooking.id}</p>
+              </div>
+              {getStatusBadge(selectedBooking.status)}
+            </div>
+
+            <div className="space-y-6">
+              <div>
+                <h3 className="font-bold text-gray-900 mb-3">Package Information</h3>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <p className="font-medium text-lg">{selectedBooking.package?.title}</p>
+                  <p className="text-gray-600">{selectedBooking.package?.destination}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <h4 className="font-medium text-gray-700 mb-2">Booking Date</h4>
+                  <p className="text-gray-900">
+                    {new Date(selectedBooking.booking_date).toLocaleDateString('en-IN', {
+                      weekday: 'long',
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                    })}
+                  </p>
+                </div>
+
+                <div>
+                  <h4 className="font-medium text-gray-700 mb-2">Travel Group</h4>
+                  <p className="text-gray-900">{selectedBooking.travel_group_name}</p>
+                </div>
+
+                <div>
+                  <h4 className="font-medium text-gray-700 mb-2">Number of Members</h4>
+                  <p className="text-gray-900">{selectedBooking.number_of_members}</p>
+                </div>
+
+                <div>
+                  <h4 className="font-medium text-gray-700 mb-2">Total Price</h4>
+                  <p className="text-gray-900 font-bold">₹{selectedBooking.total_price}</p>
+                </div>
+
+                <div>
+                  <h4 className="font-medium text-gray-700 mb-2">Advance Paid</h4>
+                  <p className="text-gray-900">₹{selectedBooking.advance_paid}</p>
+                </div>
+
+                <div>
+                  <h4 className="font-medium text-gray-700 mb-2">Payment Status</h4>
+                  <p className="text-gray-900">
+                    {selectedBooking.payment_status === 'fully_paid' ? 'Fully Paid' : 'Advance Paid'}
+                  </p>
+                </div>
+              </div>
+
+              {selectedBooking.members && selectedBooking.members.length > 0 && (
+                <div>
+                  <h3 className="font-bold text-gray-900 mb-3">Participants</h3>
+                  <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+                    {selectedBooking.members.map((member, index) => (
+                      <div key={member.id} className="flex items-center justify-between">
+                        <span className="text-gray-900">
+                          {index + 1}. {member.member_name}
+                        </span>
+                        <span className="text-gray-600">{member.member_phone}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <h3 className="font-bold text-gray-900 mb-3">WhatsApp Conversation Link</h3>
+                <input
+                  type="url"
+                  value={whatsappLink}
+                  onChange={(e) => setWhatsappLink(e.target.value)}
+                  placeholder="https://wa.me/..."
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
+              <div>
+                <h3 className="font-bold text-gray-900 mb-3">Admin Notes</h3>
+                <textarea
+                  value={adminNotes}
+                  onChange={(e) => setAdminNotes(e.target.value)}
+                  rows={4}
+                  placeholder="Add notes about this booking..."
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                />
+                <button
+                  onClick={handleSaveNotes}
+                  className="mt-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center"
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  Save Notes
+                </button>
+              </div>
+
+              <div>
+                <h3 className="font-bold text-gray-900 mb-3">Update Status</h3>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => handleUpdateStatus(selectedBooking.id, 'confirmed')}
+                    disabled={selectedBooking.status === 'confirmed'}
+                    className="flex-1 bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                  >
+                    <CheckCircle className="h-5 w-5 mr-2" />
+                    Confirm
+                  </button>
+                  <button
+                    onClick={() => handleUpdateStatus(selectedBooking.id, 'pending')}
+                    disabled={selectedBooking.status === 'pending'}
+                    className="flex-1 bg-yellow-600 text-white px-4 py-3 rounded-lg hover:bg-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                  >
+                    <Clock className="h-5 w-5 mr-2" />
+                    Set Pending
+                  </button>
+                  <button
+                    onClick={() => handleUpdateStatus(selectedBooking.id, 'cancelled')}
+                    disabled={selectedBooking.status === 'cancelled'}
+                    className="flex-1 bg-red-600 text-white px-4 py-3 rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                  >
+                    <XCircle className="h-5 w-5 mr-2" />
+                    Cancel
+                  </button>
+                </div>
+              </div>
+
+              <div className="text-xs text-gray-500 border-t pt-4">
+                <p>Booked on: {new Date(selectedBooking.created_at).toLocaleString('en-IN')}</p>
+                <p>Last updated: {new Date(selectedBooking.updated_at).toLocaleString('en-IN')}</p>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
-      <div className="max-w-7xl mx-auto px-4">
-        <h1 className="text-4xl font-bold text-gray-800 mb-8">Manage Bookings</h1>
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <button
+          onClick={() => onNavigate('admin')}
+          className="flex items-center text-emerald-600 hover:text-emerald-700 mb-2"
+        >
+          <ChevronLeft className="h-5 w-5" />
+          Back to Dashboard
+        </button>
+        <h1 className="text-3xl font-bold text-gray-900 mb-8">Manage Bookings</h1>
 
-        <div className="mb-6 flex gap-4">
-          <button
-            onClick={() => setFilter('all')}
-            className={`px-4 py-2 rounded-lg font-medium transition ${
-              filter === 'all'
-                ? 'bg-emerald-600 text-white'
-                : 'bg-white text-gray-700 hover:bg-gray-100'
-            }`}
-          >
-            All
-          </button>
-          <button
-            onClick={() => setFilter('pending')}
-            className={`px-4 py-2 rounded-lg font-medium transition ${
-              filter === 'pending'
-                ? 'bg-yellow-600 text-white'
-                : 'bg-white text-gray-700 hover:bg-gray-100'
-            }`}
-          >
-            Pending
-          </button>
-          <button
-            onClick={() => setFilter('confirmed')}
-            className={`px-4 py-2 rounded-lg font-medium transition ${
-              filter === 'confirmed'
-                ? 'bg-green-600 text-white'
-                : 'bg-white text-gray-700 hover:bg-gray-100'
-            }`}
-          >
-            Confirmed
-          </button>
-        </div>
-
-        {filteredBookings.length === 0 ? (
-          <div className="bg-white rounded-lg shadow-md p-8 text-center">
-            <p className="text-gray-600 text-lg">No bookings found.</p>
+        {bookings.length === 0 ? (
+          <div className="bg-white rounded-xl shadow-md p-12 text-center">
+            <Calendar className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-600">No bookings yet</p>
           </div>
         ) : (
           <div className="space-y-4">
-            {filteredBookings.map((booking) => (
-              <div key={booking.id} className="bg-white rounded-lg shadow-md p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-800 mb-1">
-                      {booking.package?.title || 'Package'}
-                    </h3>
-                    <p className="text-gray-600 mb-2">
-                      Customer: {booking.profile?.username || 'Unknown'} (
-                      {booking.profile?.phone || 'No phone'})
-                    </p>
-                    <div className="flex gap-4 text-sm text-gray-600">
-                      <span>Travel: {new Date(booking.travel_date).toLocaleDateString()}</span>
-                      <span>Amount: ₹{booking.total_amount}</span>
-                      <span>Advance: {booking.advance_paid ? '✓ Paid' : '✗ Not Paid'}</span>
+            {bookings.map((booking) => (
+              <div key={booking.id} className="bg-white rounded-xl shadow-md overflow-hidden">
+                <div className="p-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex-1">
+                      <h3 className="text-xl font-bold text-gray-900 mb-2">
+                        {booking.package?.title}
+                      </h3>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                        <div className="flex items-center text-gray-700">
+                          <Calendar className="h-4 w-4 mr-2 text-emerald-600" />
+                          <div>
+                            <p className="text-xs text-gray-500">Date</p>
+                            <p className="font-medium">
+                              {new Date(booking.booking_date).toLocaleDateString('en-IN', {
+                                day: 'numeric',
+                                month: 'short',
+                              })}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center text-gray-700">
+                          <Users className="h-4 w-4 mr-2 text-emerald-600" />
+                          <div>
+                            <p className="text-xs text-gray-500">Members</p>
+                            <p className="font-medium">{booking.number_of_members}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center text-gray-700">
+                          <IndianRupee className="h-4 w-4 mr-2 text-emerald-600" />
+                          <div>
+                            <p className="text-xs text-gray-500">Total</p>
+                            <p className="font-medium">₹{booking.total_price}</p>
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500">Group</p>
+                          <p className="font-medium">{booking.travel_group_name}</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="ml-4">
+                      {getStatusBadge(booking.status)}
                     </div>
                   </div>
-                  <span
-                    className={`px-3 py-1 rounded-full text-sm font-medium ${
-                      booking.status === 'confirmed'
-                        ? 'bg-green-100 text-green-800'
-                        : booking.status === 'cancelled'
-                        ? 'bg-red-100 text-red-800'
-                        : 'bg-yellow-100 text-yellow-800'
-                    }`}
-                  >
-                    {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
-                  </span>
-                </div>
 
-                {booking.status === 'pending' && (
-                  <div className="flex gap-2 border-t pt-4">
-                    <button
-                      onClick={() => confirmBooking(booking.id)}
-                      className="flex-1 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition flex items-center justify-center gap-2 font-medium"
-                    >
-                      <CheckCircle className="w-4 h-4" />
-                      Confirm
-                    </button>
-                    <button
-                      onClick={() => cancelBooking(booking.id)}
-                      className="flex-1 bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 transition flex items-center justify-center gap-2 font-medium"
-                    >
-                      <XCircle className="w-4 h-4" />
-                      Cancel
-                    </button>
+                  <div className="flex items-center justify-between border-t pt-4">
+                    <div className="text-sm text-gray-600">
+                      Booked on: {new Date(booking.created_at).toLocaleDateString('en-IN')}
+                    </div>
+                    <div className="flex gap-2">
+                      {booking.whatsapp_conversation_link && (
+                        <a
+                          href={booking.whatsapp_conversation_link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 flex items-center text-sm"
+                        >
+                          <MessageCircle className="h-4 w-4 mr-1" />
+                          WhatsApp
+                        </a>
+                      )}
+                      <button
+                        onClick={() => handleViewDetails(booking)}
+                        className="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 text-sm"
+                      >
+                        View Details
+                      </button>
+                    </div>
                   </div>
-                )}
+                </div>
               </div>
             ))}
           </div>
@@ -188,4 +366,4 @@ export default function AdminBookings() {
       </div>
     </div>
   );
-}
+};

@@ -1,70 +1,94 @@
-import React, { useState } from 'react';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
-import Navbar from './components/Navbar';
-import Home from './pages/Home';
-import Packages from './pages/Packages';
-import Contact from './pages/Contact';
-import Login from './pages/Login';
-import Bookings from './pages/Bookings';
-import Admin from './pages/Admin';
-import { AdminLogin } from './pages/AdminLogin';
-import { Toast } from './components/Toast';
-import { Loader } from 'lucide-react';
+import { useState } from 'react';
+import { AuthProvider } from './contexts/AuthContext';
+import { Navbar } from './components/Navbar';
+import { ProtectedRoute } from './components/ProtectedRoute';
+import { HomePage } from './pages/HomePage';
+import { AuthPage } from './pages/AuthPage';
+import { PackageDetailsPage } from './pages/PackageDetailsPage';
+import { BookingPage } from './pages/BookingPage';
+import { MyBookingsPage } from './pages/MyBookingsPage';
+import { AdminDashboard } from './pages/admin/AdminDashboard';
+import { AdminPackages } from './pages/admin/AdminPackages';
+import { AdminBookings } from './pages/admin/AdminBookings';
+import { AdminUsers } from './pages/admin/AdminUsers';
 
-const AppContent: React.FC = () => {
-  const { loading } = useAuth();
-  const [currentPage, setCurrentPage] = useState('home');
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+type Page =
+  | 'home'
+  | 'auth'
+  | 'package-details'
+  | 'booking'
+  | 'my-bookings'
+  | 'admin'
+  | 'admin-packages'
+  | 'admin-bookings'
+  | 'admin-users';
 
-  const showToast = (message: string, type: 'success' | 'error') => {
-    setToast({ message, type });
-    setTimeout(() => setToast(null), 3000);
+function App() {
+  const [currentPage, setCurrentPage] = useState<Page>('home');
+  const [selectedPackageId, setSelectedPackageId] = useState<string>('');
+
+  const handleNavigate = (page: string, packageId?: string) => {
+    setCurrentPage(page as Page);
+    if (packageId) {
+      setSelectedPackageId(packageId);
+    }
   };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 to-white">
-        <Loader className="h-12 w-12 text-emerald-600 animate-spin" />
-      </div>
-    );
-  }
 
   const renderPage = () => {
     switch (currentPage) {
       case 'home':
-        return <Home onNavigate={setCurrentPage} />;
-      case 'packages':
-        return <Packages onNavigate={setCurrentPage} />;
-      case 'contact':
-        return <Contact />;
-      case 'login':
-        return <Login onNavigate={setCurrentPage} />;
-      case 'bookings':
-        return <Bookings />;
+        return <HomePage onNavigate={handleNavigate} />;
+      case 'auth':
+        return <AuthPage onNavigate={handleNavigate} />;
+      case 'package-details':
+        return <PackageDetailsPage packageId={selectedPackageId} onNavigate={handleNavigate} />;
+      case 'booking':
+        return (
+          <ProtectedRoute>
+            <BookingPage packageId={selectedPackageId} onNavigate={handleNavigate} />
+          </ProtectedRoute>
+        );
+      case 'my-bookings':
+        return (
+          <ProtectedRoute>
+            <MyBookingsPage onNavigate={handleNavigate} />
+          </ProtectedRoute>
+        );
       case 'admin':
-        return <AdminLogin onNavigate={setCurrentPage} showToast={showToast} />;
-      case 'admin-dashboard':
-        return <Admin onNavigate={setCurrentPage} showToast={showToast} />;
+        return (
+          <ProtectedRoute adminOnly>
+            <AdminDashboard onNavigate={handleNavigate} />
+          </ProtectedRoute>
+        );
+      case 'admin-packages':
+        return (
+          <ProtectedRoute adminOnly>
+            <AdminPackages onNavigate={handleNavigate} />
+          </ProtectedRoute>
+        );
+      case 'admin-bookings':
+        return (
+          <ProtectedRoute adminOnly>
+            <AdminBookings onNavigate={handleNavigate} />
+          </ProtectedRoute>
+        );
+      case 'admin-users':
+        return (
+          <ProtectedRoute adminOnly>
+            <AdminUsers onNavigate={handleNavigate} />
+          </ProtectedRoute>
+        );
       default:
-        return <Home onNavigate={setCurrentPage} />;
+        return <HomePage onNavigate={handleNavigate} />;
     }
   };
 
-  const showNavbar = currentPage !== 'admin' && currentPage !== 'admin-dashboard';
-
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {showNavbar && <Navbar currentPage={currentPage} onNavigate={setCurrentPage} />}
-      {renderPage()}
-      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
-    </div>
-  );
-};
-
-function App() {
   return (
     <AuthProvider>
-      <AppContent />
+      <div className="min-h-screen bg-gray-50">
+        <Navbar currentPage={currentPage} onNavigate={handleNavigate} />
+        {renderPage()}
+      </div>
     </AuthProvider>
   );
 }
