@@ -1,28 +1,56 @@
-import { Member } from './supabase';
-
 const ADMIN_WHATSAPP = '918129464465';
+
+interface TravelerInfo {
+  name: string;
+  phone: string;
+  paidAdvance: boolean;
+}
 
 export const sendBookingToWhatsApp = (
   packageTitle: string,
-  name: string,
-  phone: string,
-  members: Member[],
-  bookingDate: string,
-  totalPrice: number
+  destination: string,
+  contactName: string,
+  contactPhone: string,
+  travelers: TravelerInfo[],
+  travelDate: string,
+  numberOfPeople: number,
+  totalAmount: number,
+  advancePayment: number,
+  remainingAmount: number,
+  groupName?: string
 ) => {
-  const membersText = members
-    .map((m, i) => `${i + 1}. ${m.name} (Age: ${m.age})`)
+  const paidTravelers = travelers.filter(t => t.paidAdvance);
+  const unpaidTravelers = travelers.filter(t => !t.paidAdvance);
+
+  const paidTravelersText = paidTravelers.length > 0
+    ? paidTravelers.map((t, i) => `${i + 1}. ${t.name} - ${t.phone}`).join('%0A')
+    : 'None';
+
+  const unpaidTravelersText = unpaidTravelers.length > 0
+    ? unpaidTravelers.map((t, i) => `${i + 1}. ${t.name} - ${t.phone}`).join('%0A')
+    : 'None';
+
+  const allTravelersText = travelers
+    .map((t, i) => `${i + 1}. ${t.name} - ${t.phone}`)
     .join('%0A');
 
-  const message = `*New Booking Request*%0A%0A` +
-    `📦 Package: ${packageTitle}%0A` +
-    `👤 Name: ${name}%0A` +
-    `📱 Phone: ${phone}%0A` +
-    `📅 Booking Date: ${bookingDate}%0A` +
-    `👥 Number of Members: ${members.length}%0A%0A` +
-    `*Member Details:*%0A${membersText}%0A%0A` +
-    `💰 Total Price: ₹${totalPrice}%0A%0A` +
-    `Please confirm this booking.`;
+  const message = `*🎉 NEW BOOKING REQUEST 🎉*%0A%0A` +
+    `📦 *Package:* ${packageTitle}%0A` +
+    `📍 *Destination:* ${destination}%0A` +
+    (groupName ? `👥 *Group Name:* ${groupName}%0A` : '') +
+    `📅 *Travel Date:* ${travelDate}%0A` +
+    `👤 *Total Travelers:* ${numberOfPeople}%0A%0A` +
+    `*Contact Person:*%0A` +
+    `Name: ${contactName}%0A` +
+    `Phone: ${contactPhone}%0A%0A` +
+    `*All Travelers:*%0A${allTravelersText}%0A%0A` +
+    `*💰 Payment Details:*%0A` +
+    `Total Amount: ₹${totalAmount.toLocaleString()}%0A` +
+    `Advance Required: ₹${advancePayment.toLocaleString()}%0A` +
+    `Remaining Balance: ₹${remainingAmount.toLocaleString()}%0A%0A` +
+    `*✅ Paid Advance (${paidTravelers.length}/${numberOfPeople}):*%0A${paidTravelersText}%0A%0A` +
+    `*⏳ Pending Advance (${unpaidTravelers.length}/${numberOfPeople}):*%0A${unpaidTravelersText}%0A%0A` +
+    `Please confirm this booking! 🙏`;
 
   const url = `https://wa.me/${ADMIN_WHATSAPP}?text=${message}`;
   window.open(url, '_blank');
