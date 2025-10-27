@@ -21,87 +21,136 @@ export const Navbar = ({ currentPage, onNavigate }: NavbarProps) => {
   };
 
   return (
-    <nav className="bg-white shadow-md sticky top-0 z-50">
+    <nav className="bg-white/95 backdrop-blur-md shadow-lg sticky top-0 z-50 border-b border-gray-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          <div className="flex items-center cursor-pointer" onClick={() => onNavigate('home')}>
-            <Mountain className="h-8 w-8 text-emerald-600" />
-            <span className="ml-2 text-xl font-bold text-gray-900">TrekBooking</span>
+          <div
+            className="flex items-center cursor-pointer group"
+            onClick={() => onNavigate('home')}
+          >
+            <div className="relative">
+              <Mountain className="h-8 w-8 text-emerald-600 group-hover:scale-110 group-hover:rotate-12 transition-all duration-300" />
+              <div className="absolute inset-0 bg-emerald-600 blur-lg opacity-0 group-hover:opacity-30 transition-opacity"></div>
+            </div>
+            <span className="ml-2 text-xl font-bold text-gray-900 group-hover:text-emerald-600 transition-colors">
+              TrekBooking
+            </span>
           </div>
 
-          <div className="hidden md:flex items-center space-x-6">
+          <div className="hidden md:flex items-center space-x-1">
             <button
               onClick={() => onNavigate('home')}
-              className={`${
-                currentPage === 'home' ? 'text-emerald-600' : 'text-gray-700'
-              } hover:text-emerald-600 font-medium transition-colors`}
+              className={`relative px-4 py-2 font-medium transition-all duration-300 group ${
+                currentPage === 'home'
+                  ? 'text-emerald-600'
+                  : 'text-gray-700 hover:text-emerald-600'
+              }`}
             >
-              Packages
+              <span className="relative z-10">Packages</span>
+              <div
+                className={`absolute inset-0 bg-emerald-50 rounded-lg transition-all duration-300 ${
+                  currentPage === 'home'
+                    ? 'opacity-100 scale-100'
+                    : 'opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100'
+                }`}
+              ></div>
             </button>
             {user && (
               <>
                 <button
                   onClick={() => onNavigate('my-bookings')}
-                  className={`${
-                    currentPage === 'my-bookings' ? 'text-emerald-600' : 'text-gray-700'
-                  } hover:text-emerald-600 font-medium transition-colors`}
+                  className={`relative px-4 py-2 font-medium transition-all duration-300 group ${
+                    currentPage === 'my-bookings'
+                      ? 'text-emerald-600'
+                      : 'text-gray-700 hover:text-emerald-600'
+                  }`}
                 >
-                  My Bookings
+                  <span className="relative z-10">My Bookings</span>
+                  <div
+                    className={`absolute inset-0 bg-emerald-50 rounded-lg transition-all duration-300 ${
+                      currentPage === 'my-bookings'
+                        ? 'opacity-100 scale-100'
+                        : 'opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100'
+                    }`}
+                  ></div>
                 </button>
                 {isAdmin && (
                   <button
                     onClick={() => onNavigate('admin')}
-                    className={`${
-                      currentPage === 'admin' ? 'text-emerald-600' : 'text-gray-700'
-                    } hover:text-emerald-600 font-medium transition-colors flex items-center`}
+                    className={`relative px-4 py-2 font-medium transition-all duration-300 group flex items-center ${
+                      currentPage === 'admin'
+                        ? 'text-emerald-600'
+                        : 'text-gray-700 hover:text-emerald-600'
+                    }`}
                   >
-                    <LayoutDashboard className="h-4 w-4 mr-1" />
-                    Admin
+                    <LayoutDashboard className="h-4 w-4 mr-1 relative z-10" />
+                    <span className="relative z-10">Admin</span>
+                    <div
+                      className={`absolute inset-0 bg-emerald-50 rounded-lg transition-all duration-300 ${
+                        currentPage === 'admin'
+                          ? 'opacity-100 scale-100'
+                          : 'opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100'
+                      }`}
+                    ></div>
                   </button>
                 )}
               </>
             )}
-            {user ? (
-              <div className="flex items-center space-x-4">
-                <span className="text-gray-700 text-sm">{profile?.full_name || user.email}</span>
+            <div className="ml-4 flex items-center space-x-4">
+              {user ? (
+                <>
+                  <span className="text-gray-700 text-sm font-medium">
+                    {profile?.full_name || user.email}
+                  </span>
+                  <button
+                    onClick={handleSignOut}
+                    className="group flex items-center space-x-2 text-gray-700 hover:text-red-600 transition-colors p-2 hover:bg-red-50 rounded-lg"
+                    title="Sign Out"
+                  >
+                    <LogOut className="h-5 w-5 group-hover:scale-110 transition-transform" />
+                  </button>
+                </>
+              ) : (
                 <button
-                  onClick={handleSignOut}
-                  className="flex items-center text-gray-700 hover:text-emerald-600 transition-colors"
+                  onClick={() => onNavigate('auth')}
+                  className="group relative px-6 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-lg font-medium hover:shadow-lg transition-all duration-300 flex items-center space-x-2 overflow-hidden"
                 >
-                  <LogOut className="h-5 w-5" />
+                  <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 transition-opacity"></div>
+                  <User className="h-4 w-4 relative z-10 group-hover:scale-110 transition-transform" />
+                  <span className="relative z-10">Sign In</span>
                 </button>
-              </div>
-            ) : (
-              <button
-                onClick={() => onNavigate('auth')}
-                className="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors flex items-center"
-              >
-                <User className="h-4 w-4 mr-2" />
-                Sign In
-              </button>
-            )}
+              )}
+            </div>
           </div>
 
           <div className="md:hidden">
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="text-gray-700 hover:text-emerald-600"
+              className="text-gray-700 hover:text-emerald-600 p-2 hover:bg-emerald-50 rounded-lg transition-all duration-300"
             >
-              {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+              {isMenuOpen ? (
+                <X className="h-6 w-6 transform rotate-0 transition-transform duration-300" />
+              ) : (
+                <Menu className="h-6 w-6 transform rotate-0 transition-transform duration-300" />
+              )}
             </button>
           </div>
         </div>
       </div>
 
       {isMenuOpen && (
-        <div className="md:hidden bg-white border-t">
-          <div className="px-4 py-3 space-y-3">
+        <div className="md:hidden bg-white border-t border-gray-100 animate-fade-in">
+          <div className="px-4 py-4 space-y-2">
             <button
               onClick={() => {
                 onNavigate('home');
                 setIsMenuOpen(false);
               }}
-              className="block w-full text-left text-gray-700 hover:text-emerald-600 font-medium"
+              className={`block w-full text-left px-4 py-3 rounded-lg font-medium transition-all duration-300 ${
+                currentPage === 'home'
+                  ? 'bg-emerald-50 text-emerald-600'
+                  : 'text-gray-700 hover:bg-emerald-50 hover:text-emerald-600'
+              }`}
             >
               Packages
             </button>
@@ -112,7 +161,11 @@ export const Navbar = ({ currentPage, onNavigate }: NavbarProps) => {
                     onNavigate('my-bookings');
                     setIsMenuOpen(false);
                   }}
-                  className="block w-full text-left text-gray-700 hover:text-emerald-600 font-medium"
+                  className={`block w-full text-left px-4 py-3 rounded-lg font-medium transition-all duration-300 ${
+                    currentPage === 'my-bookings'
+                      ? 'bg-emerald-50 text-emerald-600'
+                      : 'text-gray-700 hover:bg-emerald-50 hover:text-emerald-600'
+                  }`}
                 >
                   My Bookings
                 </button>
@@ -122,7 +175,11 @@ export const Navbar = ({ currentPage, onNavigate }: NavbarProps) => {
                       onNavigate('admin');
                       setIsMenuOpen(false);
                     }}
-                    className="block w-full text-left text-gray-700 hover:text-emerald-600 font-medium"
+                    className={`block w-full text-left px-4 py-3 rounded-lg font-medium transition-all duration-300 ${
+                      currentPage === 'admin'
+                        ? 'bg-emerald-50 text-emerald-600'
+                        : 'text-gray-700 hover:bg-emerald-50 hover:text-emerald-600'
+                    }`}
                   >
                     Admin Dashboard
                   </button>
@@ -131,12 +188,12 @@ export const Navbar = ({ currentPage, onNavigate }: NavbarProps) => {
             )}
             {user ? (
               <>
-                <div className="text-gray-700 text-sm py-2 border-t">
+                <div className="px-4 py-3 text-gray-700 text-sm font-medium border-t border-gray-100 mt-2 pt-4">
                   {profile?.full_name || user.email}
                 </div>
                 <button
                   onClick={handleSignOut}
-                  className="block w-full text-left text-gray-700 hover:text-emerald-600 font-medium"
+                  className="block w-full text-left px-4 py-3 rounded-lg text-red-600 hover:bg-red-50 font-medium transition-all duration-300"
                 >
                   Sign Out
                 </button>
@@ -147,7 +204,7 @@ export const Navbar = ({ currentPage, onNavigate }: NavbarProps) => {
                   onNavigate('auth');
                   setIsMenuOpen(false);
                 }}
-                className="block w-full text-left bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700"
+                className="block w-full text-center bg-gradient-to-r from-emerald-600 to-teal-600 text-white px-4 py-3 rounded-lg hover:shadow-lg font-medium transition-all duration-300"
               >
                 Sign In
               </button>
