@@ -1,13 +1,11 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Calendar, MapPin, Users, IndianRupee, MousePointer2, Phone, Mail, MessageCircle, Instagram, Send, Mountain, ArrowRight } from 'lucide-react';
 import { Package } from '../types';
 import { packageService } from '../services/packageService';
 
-interface HomePageProps {
-  onNavigate: (page: string, packageId?: string) => void;
-}
-
-export const HomePage = ({ onNavigate }: HomePageProps) => {
+export const HomePage = () => {
+  const navigate = useNavigate();
   const [packages, setPackages] = useState<Package[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -177,7 +175,7 @@ export const HomePage = ({ onNavigate }: HomePageProps) => {
                   key={pkg.id}
                   className="group bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 cursor-pointer animate-fade-in-up"
                   style={{ animationDelay: `${index * 100}ms` }}
-                  onClick={() => onNavigate('package-details', pkg.id)}
+                  onClick={() => navigate(`/package/${pkg.id}`)}
                 >
                   <div className="relative h-72 overflow-hidden">
                     <img
@@ -217,7 +215,7 @@ export const HomePage = ({ onNavigate }: HomePageProps) => {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          onNavigate('package-details', pkg.id);
+                          navigate(`/package/${pkg.id}`);
                         }}
                         className="px-6 py-3 bg-emerald-600 text-white rounded-xl font-semibold hover:bg-emerald-700 hover:scale-105 transition-all duration-300 flex items-center space-x-2"
                       >
@@ -412,7 +410,7 @@ export const HomePage = ({ onNavigate }: HomePageProps) => {
               <ul className="space-y-2">
                 <li>
                   <button
-                    onClick={() => onNavigate('home')}
+                    onClick={() => navigate('/packages')}
                     className="text-gray-400 hover:text-emerald-500 transition-colors hover:translate-x-1 inline-block"
                   >
                     Packages
@@ -420,7 +418,7 @@ export const HomePage = ({ onNavigate }: HomePageProps) => {
                 </li>
                 <li>
                   <button
-                    onClick={() => onNavigate('my-bookings')}
+                    onClick={() => navigate('/bookings')}
                     className="text-gray-400 hover:text-emerald-500 transition-colors hover:translate-x-1 inline-block"
                   >
                     My Bookings

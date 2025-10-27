@@ -13,8 +13,8 @@ export interface Package {
   title: string;
   description?: string;
   destination?: string;
-  price_per_head: number;
-  advance_payment: number;
+  price_per_head: string | number;
+  advance_payment: string | number;
   duration_days: number;
   start_date?: string;
   end_date?: string;

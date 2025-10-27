@@ -1,20 +1,26 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
-import { useAuth } from './contexts/AuthContext';
-import { Navbar } from './components/Navbar';
-import Home from './pages/Home';
-import { Packages } from './pages/Packages';
-import { PackageDetails } from './pages/PackageDetails';
-import Contact from './pages/Contact';
-import Login from './pages/Login';
-import { Signup } from './pages/SignUp';
-import { AdminLogin } from './pages/AdminLogin';
-import { AdminDashboard } from './pages/AdminDashboard';
-import BookingPage from './pages/BookingPage';
-import PaymentPage from './pages/PaymentPage';
-import RemainingPaymentPage from './pages/RemainingPaymentPage';
-import UserBookings from './pages/UserBookings';
+import { Routes, Route, Navigate } from "react-router-dom";
+import { useAuth } from "./contexts/AuthContext";
+import { Navbar } from "./components/Navbar";
+import { HomePage } from "./pages/HomePage";
+import { Packages } from "./pages/Packages";
+import { PackageDetails } from "./pages/PackageDetails";
+import Contact from "./pages/Contact";
+import Login from "./pages/Login";
+import { Signup } from "./pages/SignUp";
+import { AdminLogin } from "./pages/AdminLogin";
+import { AdminDashboard } from "./pages/AdminDashboard";
+import BookingPage from "./pages/BookingPage";
+import PaymentPage from "./pages/PaymentPage";
+import RemainingPaymentPage from "./pages/RemainingPaymentPage";
+import UserBookings from "./pages/UserBookings";
 
-function ProtectedRoute({ children, requireAuth = false }: { children: React.ReactNode; requireAuth?: boolean }) {
+function ProtectedRoute({
+  children,
+  requireAuth = false,
+}: {
+  children: React.ReactNode;
+  requireAuth?: boolean;
+}) {
   const { user, loading } = useAuth();
 
   if (loading) {
@@ -46,15 +52,18 @@ export default function AppRouter() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Routes>
+        {/* Admin routes */}
         <Route path="/admin-login" element={<AdminLogin />} />
         <Route path="/admin/*" element={<AdminDashboard />} />
+
+        {/* User-facing routes */}
         <Route
           path="/*"
           element={
             <>
               <Navbar />
               <Routes>
-                <Route path="/" element={<Home />} />
+                <Route path="/" element={<HomePage />} />
                 <Route path="/packages" element={<Packages />} />
                 <Route path="/package/:id" element={<PackageDetails />} />
                 <Route
