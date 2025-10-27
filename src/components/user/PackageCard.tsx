@@ -1,12 +1,13 @@
 import { Package } from '../../lib/supabase';
-import { Calendar, MapPin, Clock, Users, Check } from 'lucide-react';
+import { Calendar, MapPin, Clock, Users, Check, Eye } from 'lucide-react';
 
 type PackageCardProps = {
   package: Package;
+  onViewDetails: () => void;
   onBook: () => void;
 };
 
-export function PackageCard({ package: pkg, onBook }: PackageCardProps) {
+export function PackageCard({ package: pkg, onViewDetails, onBook }: PackageCardProps) {
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-IN', {
       day: 'numeric',
@@ -88,12 +89,21 @@ export function PackageCard({ package: pkg, onBook }: PackageCardProps) {
             </div>
           </div>
 
-          <button
-            onClick={onBook}
-            className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors duration-200"
-          >
-            View Details
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={onViewDetails}
+              className="flex-1 py-2.5 border-2 border-blue-600 text-blue-600 rounded-lg font-semibold hover:bg-blue-50 transition-colors flex items-center justify-center gap-2"
+            >
+              <Eye className="h-4 w-4" />
+              Details
+            </button>
+            <button
+              onClick={onBook}
+              className="flex-1 py-2.5 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+            >
+              Book Now
+            </button>
+          </div>
         </div>
       </div>
     </div>

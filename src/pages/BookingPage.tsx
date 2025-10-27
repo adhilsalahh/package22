@@ -1,40 +1,50 @@
 import { useEffect, useState } from 'react';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Calendar, Users, IndianRupee, ChevronLeft, MessageCircle, Plus, Trash2 } from 'lucide-react';
-import { Package, PackageAvailableDate } from '../types';
-import { packageService } from '../services/packageService';
-import { bookingService } from '../services/bookingService';
+import { supabase, Package, PackageDate } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
-interface BookingPageProps {
-  packageId: string;
-  onNavigate: (page: string) => void;
-}
-
-export const BookingPage = ({ packageId, onNavigate }: BookingPageProps) => {
-  const [pkg, setPkg] = useState<Package | null>(null);
-  const [availableDates, setAvailableDates] = useState<PackageAvailableDate[]>([]);
-  const [selectedDate, setSelectedDate] = useState('');
+const BookingPage = () => {
+  const { id: packageId } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { package: pkgFromState, date: dateFromState } = location.state || {};
+  const [pkg, setPkg] = useState<Package | null>(pkgFromState || null);
+  const [availableDates, setAvailableDates] = useState<PackageDate[]>([]);
+  const [selectedDate, setSelectedDate] = useState(dateFromState?.available_date || '');
   const [travelGroupName, setTravelGroupName] = useState('');
   const [members, setMembers] = useState<{ name: string; phone: string }[]>([{ name: '', phone: '' }]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!pkgFromState);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const { user } = useAuth();
 
   useEffect(() => {
-    loadData();
-  }, [packageId]);
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+    if (!pkgFromState && packageId) {
+      loadData();
+    }
+  }, [packageId, user]);
 
   const loadData = async () => {
+    if (!packageId) return;
     try {
-      const [pkgData, dates] = await Promise.all([
-        packageService.getPackageById(packageId),
-        packageService.getAvailableDates(packageId),
+      const [pkgResponse, datesResponse] = await Promise.all([
+        supabase.from('packages').select('*').eq('id', packageId).maybeSingle(),
+        supabase.from('package_dates').select('*').eq('package_id', packageId).order('available_date'),
       ]);
-      setPkg(pkgData);
-      setAvailableDates(dates);
+
+      if (pkgResponse.error) throw pkgResponse.error;
+      if (datesResponse.error) throw datesResponse.error;
+
+      setPkg(pkgResponse.data);
+      setAvailableDates(datesResponse.data || []);
     } catch (err) {
       console.error(err);
+      setError('Failed to load package details');
     } finally {
       setLoading(false);
     }
@@ -83,17 +93,37 @@ export const BookingPage = ({ packageId, onNavigate }: BookingPageProps) => {
       const totalPrice = pkg!.price_per_head * members.length;
       const advancePaid = pkg!.advance_payment * members.length;
 
-      const booking = await bookingService.createBooking(
-        {
+      const { data: booking, error: bookingError } = await supabase
+        .from('bookings')
+        .insert({
+          user_id: user!.id,
           package_id: packageId,
           booking_date: selectedDate,
           travel_group_name: travelGroupName,
           number_of_members: members.length,
           total_price: totalPrice,
           advance_paid: advancePaid,
-        },
-        members.map(m => ({ member_name: m.name, member_phone: m.phone }))
-      );
+          status: 'pending',
+        })
+        .select()
+        .single();
+
+      if (bookingError) throw bookingError;
+
+      const memberInserts = members.map((m) => ({
+        booking_id: booking.id,
+        member_name: m.name,
+        member_phone: m.phone,
+      }));
+
+      const { error: membersError } = await supabase
+        .from('booking_members')
+        .insert(memberInserts);
+
+      if (membersError) throw membersError;
+
+      const contactInfo = pkg!.contact_info as any;
+      const whatsappPhone = contactInfo?.phone || '919876543210';
 
       const whatsappMessage = `Hi, I would like to book ${pkg!.title}
 
@@ -108,10 +138,10 @@ ${members.map((m, i) => `${i + 1}. ${m.name} - ${m.phone}`).join('\n')}
 
 Booking ID: ${booking.id}`;
 
-      const whatsappUrl = `https://wa.me/${pkg!.contact_info?.phone}?text=${encodeURIComponent(whatsappMessage)}`;
+      const whatsappUrl = `https://wa.me/${whatsappPhone}?text=${encodeURIComponent(whatsappMessage)}`;
       window.open(whatsappUrl, '_blank');
 
-      onNavigate('my-bookings');
+      navigate('/bookings');
     } catch (err: any) {
       setError(err.message || 'Failed to create booking');
     } finally {
@@ -147,7 +177,7 @@ Booking ID: ${booking.id}`;
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <button
-          onClick={() => onNavigate('package-details')}
+          onClick={() => navigate(`/package/${packageId}`)}
           className="flex items-center text-emerald-600 hover:text-emerald-700 mb-6"
         >
           <ChevronLeft className="h-5 w-5" />
@@ -311,3 +341,5 @@ Booking ID: ${booking.id}`;
     </div>
   );
 };
+
+export default BookingPage;

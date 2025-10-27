@@ -102,10 +102,10 @@ export function Packages() {
                       className="flex-1 py-2.5 border-2 border-blue-600 text-blue-600 rounded-lg font-semibold hover:bg-blue-50 transition-colors flex items-center justify-center gap-2"
                     >
                       <Eye className="h-4 w-4" />
-                      View Details
+                      Details
                     </button>
                     <button
-                      onClick={() => navigate(`/package/${pkg.id}`)}
+                      onClick={() => navigate(`/booking/${pkg.id}`)}
                       className="flex-1 py-2.5 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
                     >
                       Book Now

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase, Package, Booking } from '../../lib/supabase';
 import { PackageCard } from './PackageCard';
 import { BookingModal } from './BookingModal';
@@ -7,6 +8,7 @@ import { Plane, Calendar, LogOut } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 export function UserDashboard() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'packages' | 'my-bookings'>('packages');
   const [packages, setPackages] = useState<Package[]>([]);
   const [myBookings, setMyBookings] = useState<(Booking & { package: Package })[]>([]);
@@ -109,7 +111,8 @@ export function UserDashboard() {
                     <PackageCard
                       key={pkg.id}
                       package={pkg}
-                      onBook={() => setSelectedPackage(pkg)}
+                      onViewDetails={() => navigate(`/package/${pkg.id}`)}
+                      onBook={() => navigate(`/booking/${pkg.id}`)}
                     />
                   ))
                 )}
