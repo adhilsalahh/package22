@@ -25,7 +25,7 @@ export function PackageDetails() {
     try {
       const [pkgResponse, datesResponse] = await Promise.all([
         supabase.from('packages').select('*').eq('id', packageId).maybeSingle(),
-        supabase.from('package_dates').select('*').eq('package_id', packageId).order('available_date'),
+        supabase.from('package_available_dates').select('*').eq('package_id', packageId).order('available_date'),
       ]);
 
       if (pkgResponse.error) throw pkgResponse.error;

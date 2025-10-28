@@ -1,13 +1,11 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { LogIn, UserPlus, AlertCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
-interface LoginProps {
-  onNavigate: (page: string) => void;
-}
-
-const Login: React.FC<LoginProps> = ({ onNavigate }) => {
+const Login: React.FC = () => {
   const { signIn, signUp } = useAuth();
+  const navigate = useNavigate();
   const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -39,7 +37,7 @@ const Login: React.FC<LoginProps> = ({ onNavigate }) => {
           throw new Error('Please enter your name/email and password');
         }
         await signIn(formData.identifier, formData.password);
-        onNavigate('home');
+        navigate('/');
       }
     } catch (err: any) {
       setError(err.message || 'An error occurred');

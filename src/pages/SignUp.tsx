@@ -1,6 +1,7 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { UserPlus, Eye, EyeOff, AlertCircle } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../contexts/AuthContext';
 import { SignupPreview } from '../components/SignupPreview';
 import {
   validateEmail,
@@ -10,11 +11,6 @@ import {
   validateFullName,
   getPasswordStrength,
 } from '../utils/validation';
-
-interface SignupProps {
-  onNavigate: (page: string) => void;
-  showToast: (message: string, type: 'success' | 'error') => void;
-}
 
 interface FormData {
   username: string;
@@ -29,7 +25,8 @@ interface FormErrors {
   [key: string]: string;
 }
 
-export function Signup({ onNavigate, showToast }: SignupProps) {
+export function Signup() {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState<FormData>({
     username: '',
     email: '',
@@ -103,15 +100,14 @@ export function Signup({ onNavigate, showToast }: SignupProps) {
       await signUp(
         formData.email,
         formData.password,
-        formData.username,
-        formData.phone,
-        formData.fullName
+        formData.fullName,
+        formData.phone
       );
-      showToast('Account created successfully!', 'success');
-      onNavigate('login');
+      alert('Account created successfully! Please sign in.');
+      navigate('/login');
     } catch (error: any) {
       console.error('Signup error:', error);
-      showToast(error.message || 'Failed to create account', 'error');
+      alert(error.message || 'Failed to create account');
       setShowPreview(false);
     } finally {
       setLoading(false);
@@ -360,7 +356,7 @@ export function Signup({ onNavigate, showToast }: SignupProps) {
             <p className="text-gray-600">
               Already have an account?{' '}
               <button
-                onClick={() => onNavigate('login')}
+                onClick={() => navigate('/login')}
                 className="text-blue-600 hover:underline font-semibold"
               >
                 Login
