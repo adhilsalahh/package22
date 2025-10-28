@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { Calendar, Users, IndianRupee, ChevronLeft, MessageCircle, Plus, Trash2 } from 'lucide-react';
+import { Calendar, ChevronLeft, MessageCircle } from 'lucide-react';
 import { supabase, Package, PackageDate } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -13,7 +13,9 @@ const BookingPage = () => {
   const [availableDates, setAvailableDates] = useState<PackageDate[]>([]);
   const [selectedDate, setSelectedDate] = useState(dateFromState?.available_date || '');
   const [travelGroupName, setTravelGroupName] = useState('');
-  const [members, setMembers] = useState<{ name: string; phone: string }[]>([{ name: '', phone: '' }]);
+  const [numberOfMembers, setNumberOfMembers] = useState(2);
+  const [member1, setMember1] = useState({ name: '', phone: '' });
+  const [member2, setMember2] = useState({ name: '', phone: '' });
   const [loading, setLoading] = useState(!pkgFromState);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -50,21 +52,6 @@ const BookingPage = () => {
     }
   };
 
-  const addMember = () => {
-    setMembers([...members, { name: '', phone: '' }]);
-  };
-
-  const removeMember = (index: number) => {
-    if (members.length > 1) {
-      setMembers(members.filter((_, i) => i !== index));
-    }
-  };
-
-  const updateMember = (index: number, field: 'name' | 'phone', value: string) => {
-    const updated = [...members];
-    updated[index][field] = value;
-    setMembers(updated);
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,70 +62,38 @@ const BookingPage = () => {
       return;
     }
 
-    if (!travelGroupName.trim()) {
-      setError('Please enter a travel group name');
+    if (!member1.name.trim() || !member1.phone.trim()) {
+      setError('Please fill in all details for Person 1');
       return;
     }
 
-    for (let i = 0; i < members.length; i++) {
-      if (!members[i].name.trim() || !members[i].phone.trim()) {
-        setError(`Please fill in all details for member ${i + 1}`);
-        return;
-      }
+    if (!member2.name.trim() || !member2.phone.trim()) {
+      setError('Please fill in all details for Person 2');
+      return;
     }
 
     setSubmitting(true);
 
     try {
-      const totalPrice = pkg!.price_per_head * members.length;
-      const advancePaid = pkg!.advance_payment * members.length;
-
-      const { data: booking, error: bookingError } = await supabase
-        .from('bookings')
-        .insert({
-          user_id: user!.id,
-          package_id: packageId,
-          booking_date: selectedDate,
-          travel_group_name: travelGroupName,
-          number_of_members: members.length,
-          total_price: totalPrice,
-          advance_paid: advancePaid,
-          status: 'pending',
-        })
-        .select()
-        .single();
-
-      if (bookingError) throw bookingError;
-
-      const memberInserts = members.map((m) => ({
-        booking_id: booking.id,
-        member_name: m.name,
-        member_phone: m.phone,
-      }));
-
-      const { error: membersError } = await supabase
-        .from('booking_members')
-        .insert(memberInserts);
-
-      if (membersError) throw membersError;
-
-      const contactInfo = pkg!.contact_info as any;
-      const whatsappPhone = contactInfo?.phone || '919876543210';
+      const totalPrice = pkg!.price_per_head * numberOfMembers;
+      const advancePaid = pkg!.advance_payment * numberOfMembers;
 
       const whatsappMessage = `Hi, I would like to book ${pkg!.title}
 
 Date: ${new Date(selectedDate).toLocaleDateString()}
-Travel Group: ${travelGroupName}
-Number of Members: ${members.length}
+Number of Members: ${numberOfMembers}
 Total Price: ₹${totalPrice}
 Advance Payment: ₹${advancePaid}
 
-Members:
-${members.map((m, i) => `${i + 1}. ${m.name} - ${m.phone}`).join('\n')}
+Contact Person 1:
+Name: ${member1.name}
+Phone: ${member1.phone}
 
-Booking ID: ${booking.id}`;
+Contact Person 2:
+Name: ${member2.name}
+Phone: ${member2.phone}`;
 
-      const whatsappUrl = `https://wa.me/${whatsappPhone}?text=${encodeURIComponent(whatsappMessage)}`;
+      const whatsappUrl = `https://wa.me/917592049934?text=${encodeURIComponent(whatsappMessage)}`;
       window.open(whatsappUrl, '_blank');
 
       navigate('/bookings');
@@ -170,8 +125,8 @@ Booking ID: ${booking.id}`;
     );
   }
 
-  const totalPrice = pkg.price_per_head * members.length;
-  const advanceTotal = pkg.advance_payment * members.length;
+  const totalPrice = pkg.price_per_head * numberOfMembers;
+  const advanceTotal = pkg.advance_payment * numberOfMembers;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -195,100 +150,89 @@ Booking ID: ${booking.id}`;
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Select Date <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                <select
-                  value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                  className="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                  required
-                >
-                  <option value="">Choose a date</option>
-                  {availableDates.map((date) => (
-                    <option key={date.id} value={date.available_date}>
-                      {new Date(date.available_date).toLocaleDateString('en-IN', {
-                        weekday: 'long',
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                      })}
-                    </option>
-                  ))}
-                </select>
+            <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 mb-6">
+              <div className="flex items-center space-x-3">
+                <Calendar className="h-5 w-5 text-emerald-600 flex-shrink-0" />
+                <div>
+                  <p className="text-sm font-medium text-gray-700">Selected Date</p>
+                  <p className="text-lg font-bold text-gray-900">
+                    {selectedDate ? new Date(selectedDate).toLocaleDateString('en-IN', {
+                      weekday: 'long',
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                    }) : 'Not selected'}
+                  </p>
+                </div>
               </div>
-              {availableDates.length === 0 && (
-                <p className="text-sm text-red-600 mt-1">No dates available for booking</p>
-              )}
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Travel Group Name <span className="text-red-500">*</span>
+                Number of Members <span className="text-red-500">*</span>
               </label>
               <input
-                type="text"
-                value={travelGroupName}
-                onChange={(e) => setTravelGroupName(e.target.value)}
+                type="number"
+                min="2"
+                value={numberOfMembers}
+                onChange={(e) => setNumberOfMembers(Math.max(2, parseInt(e.target.value) || 2))}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                placeholder="e.g., Adventure Squad"
                 required
               />
+              <p className="text-sm text-gray-600 mt-1">
+                You will provide contact details for 2 people below
+              </p>
             </div>
 
             <div>
-              <div className="flex items-center justify-between mb-4">
-                <label className="block text-sm font-medium text-gray-700">
-                  Participant Details <span className="text-red-500">*</span>
-                </label>
-                <button
-                  type="button"
-                  onClick={addMember}
-                  className="flex items-center text-emerald-600 hover:text-emerald-700 text-sm font-medium"
-                >
-                  <Plus className="h-4 w-4 mr-1" />
-                  Add Member
-                </button>
-              </div>
+              <label className="block text-sm font-medium text-gray-700 mb-4">
+                Contact Person Details <span className="text-red-500">*</span>
+              </label>
 
               <div className="space-y-4">
-                {members.map((member, index) => (
-                  <div key={index} className="border border-gray-200 rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className="font-medium text-gray-900">Member {index + 1}</h4>
-                      {members.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removeMember(index)}
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      )}
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <input
-                        type="text"
-                        value={member.name}
-                        onChange={(e) => updateMember(index, 'name', e.target.value)}
-                        className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                        placeholder="Full Name"
-                        required
-                      />
-                      <input
-                        type="tel"
-                        value={member.phone}
-                        onChange={(e) => updateMember(index, 'phone', e.target.value)}
-                        className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                        placeholder="Phone Number"
-                        required
-                      />
-                    </div>
+                <div className="border border-gray-200 rounded-lg p-4">
+                  <h4 className="font-medium text-gray-900 mb-3">Person 1</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <input
+                      type="text"
+                      value={member1.name}
+                      onChange={(e) => setMember1({ ...member1, name: e.target.value })}
+                      className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                      placeholder="Full Name"
+                      required
+                    />
+                    <input
+                      type="tel"
+                      value={member1.phone}
+                      onChange={(e) => setMember1({ ...member1, phone: e.target.value })}
+                      className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                      placeholder="Phone Number"
+                      required
+                    />
                   </div>
-                ))}
+                </div>
+
+                <div className="border border-gray-200 rounded-lg p-4">
+                  <h4 className="font-medium text-gray-900 mb-3">Person 2</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <input
+                      type="text"
+                      value={member2.name}
+                      onChange={(e) => setMember2({ ...member2, name: e.target.value })}
+                      className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                      placeholder="Full Name"
+                      required
+                    />
+                    <input
+                      type="tel"
+                      value={member2.phone}
+                      onChange={(e) => setMember2({ ...member2, phone: e.target.value })}
+                      className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                      placeholder="Phone Number"
+                      required
+                    />
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -296,7 +240,7 @@ Booking ID: ${booking.id}`;
               <h3 className="font-bold text-gray-900 text-lg mb-4">Booking Summary</h3>
               <div className="flex justify-between text-gray-700">
                 <span>Number of Members:</span>
-                <span className="font-medium">{members.length}</span>
+                <span className="font-medium">{numberOfMembers}</span>
               </div>
               <div className="flex justify-between text-gray-700">
                 <span>Price per Person:</span>
@@ -330,7 +274,7 @@ Booking ID: ${booking.id}`;
 
             <button
               type="submit"
-              disabled={submitting || availableDates.length === 0}
+              disabled={submitting || !selectedDate}
               className="w-full bg-emerald-600 text-white py-3 rounded-lg hover:bg-emerald-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {submitting ? 'Processing...' : 'Proceed to WhatsApp Booking'}
