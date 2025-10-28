@@ -231,6 +231,81 @@ export const HomePage = () => {
         </div>
       </section>
 
+      <section className="py-20 px-4 bg-white">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+              What Makes Us Special
+            </h2>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              Why Choose TrekBooking
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="group bg-gradient-to-br from-emerald-50 to-teal-50 p-8 rounded-2xl hover:shadow-xl transition-all duration-300 hover:-translate-y-2">
+              <div className="w-16 h-16 bg-gradient-to-br from-emerald-600 to-teal-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                <Mountain className="h-8 w-8 text-white" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-3">Official Tourism Promoter</h3>
+              <p className="text-gray-600 leading-relaxed">
+                Kerala Forest Development Corporation authorized partner
+              </p>
+            </div>
+
+            <div className="group bg-gradient-to-br from-emerald-50 to-teal-50 p-8 rounded-2xl hover:shadow-xl transition-all duration-300 hover:-translate-y-2">
+              <div className="w-16 h-16 bg-gradient-to-br from-emerald-600 to-teal-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                <MapPin className="h-8 w-8 text-white" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-3">Curated Trekking Adventures</h3>
+              <p className="text-gray-600 leading-relaxed">
+                Handpicked trails for all experience levels
+              </p>
+            </div>
+
+            <div className="group bg-gradient-to-br from-emerald-50 to-teal-50 p-8 rounded-2xl hover:shadow-xl transition-all duration-300 hover:-translate-y-2">
+              <div className="w-16 h-16 bg-gradient-to-br from-emerald-600 to-teal-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                <Users className="h-8 w-8 text-white" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-3">Expert Local Guides</h3>
+              <p className="text-gray-600 leading-relaxed">
+                Safe and insightful journeys with knowledgeable leaders
+              </p>
+            </div>
+
+            <div className="group bg-gradient-to-br from-emerald-50 to-teal-50 p-8 rounded-2xl hover:shadow-xl transition-all duration-300 hover:-translate-y-2">
+              <div className="w-16 h-16 bg-gradient-to-br from-emerald-600 to-teal-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                <Users className="h-8 w-8 text-white" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-3">Small Group Experiences</h3>
+              <p className="text-gray-600 leading-relaxed">
+                More personal and immersive adventures
+              </p>
+            </div>
+
+            <div className="group bg-gradient-to-br from-emerald-50 to-teal-50 p-8 rounded-2xl hover:shadow-xl transition-all duration-300 hover:-translate-y-2">
+              <div className="w-16 h-16 bg-gradient-to-br from-emerald-600 to-teal-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                <Calendar className="h-8 w-8 text-white" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-3">Hassle-Free Planning</h3>
+              <p className="text-gray-600 leading-relaxed">
+                We handle permits, accommodation, and logistics
+              </p>
+            </div>
+
+            <div className="group bg-gradient-to-br from-emerald-50 to-teal-50 p-8 rounded-2xl hover:shadow-xl transition-all duration-300 hover:-translate-y-2">
+              <div className="w-16 h-16 bg-gradient-to-br from-emerald-600 to-teal-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                <Mountain className="h-8 w-8 text-white" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-3">Safety First Approach</h3>
+              <p className="text-gray-600 leading-relaxed">
+                Your well-being is our top priority
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section className="py-20 px-4 bg-gradient-to-br from-gray-900 to-gray-800 text-white">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16 animate-fade-in-up">
@@ -287,8 +362,8 @@ export const HomePage = () => {
                     </div>
                     <div>
                       <h4 className="font-semibold text-gray-900 mb-1">Phone</h4>
-                      <p className="text-gray-600">+91 1234567890</p>
-                      <p className="text-gray-600">+91 0987654321</p>
+                      <p className="text-gray-600">+91 7592049934</p>
+                      <p className="text-gray-600">+91 9495919934</p>
                     </div>
                   </div>
                   <div className="flex items-start space-x-4 group cursor-pointer hover:translate-x-2 transition-transform">
@@ -297,8 +372,8 @@ export const HomePage = () => {
                     </div>
                     <div>
                       <h4 className="font-semibold text-gray-900 mb-1">Email</h4>
-                      <p className="text-gray-600">info@trekbooking.com</p>
-                      <p className="text-gray-600">support@trekbooking.com</p>
+                      <p className="text-gray-600">info@vaorutrippadikkam.com</p>
+                      <p className="text-gray-600">support@vaorutrippadikkam.com</p>
                     </div>
                   </div>
                   <div className="flex items-start space-x-4 group cursor-pointer hover:translate-x-2 transition-transform">
@@ -307,8 +382,8 @@ export const HomePage = () => {
                     </div>
                     <div>
                       <h4 className="font-semibold text-gray-900 mb-1">Address</h4>
-                      <p className="text-gray-600">123 Adventure Street</p>
-                      <p className="text-gray-600">Kerala, India 682001</p>
+                      <p className="text-gray-600">Munnar,suryanelli,Chinnakanal panchayathu </p>
+                      <p className="text-gray-600">Kerala, India 685618</p>
                     </div>
                   </div>
                 </div>
@@ -431,11 +506,11 @@ export const HomePage = () => {
               <ul className="space-y-2 text-gray-400">
                 <li className="flex items-center space-x-2 hover:text-emerald-500 transition-colors">
                   <Phone className="h-4 w-4" />
-                  <span>+91 1234567890</span>
+                  <span>+91 7592049934</span>
                 </li>
                 <li className="flex items-center space-x-2 hover:text-emerald-500 transition-colors">
                   <Mail className="h-4 w-4" />
-                  <span>info@trekbooking.com</span>
+                  <span>info@vaorutrippadikkam.com</span>
                 </li>
               </ul>
             </div>

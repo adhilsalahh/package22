@@ -32,7 +32,7 @@ export const Navbar = () => {
               <div className="absolute inset-0 bg-emerald-600 blur-lg opacity-0 group-hover:opacity-30 transition-opacity"></div>
             </div>
             <span className="ml-2 text-xl font-bold text-gray-900 group-hover:text-emerald-600 transition-colors">
-              TrekBooking
+             Va Oru Trippadikkam
             </span>
           </div>
 
