@@ -102,12 +102,12 @@ export function PackageDetails() {
         </Link>
 
         <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-          <div className="relative h-96 bg-gray-200">
+          <div className="relative w-full h-64 sm:h-80 md:h-96 lg:h-[500px] bg-gray-200">
             {pkg.image_url ? (
               <img
                 src={pkg.image_url}
                 alt={pkg.title}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover object-center"
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-400 to-blue-600">
@@ -186,11 +186,25 @@ export function PackageDetails() {
             {itinerary.length > 0 && (
               <div className="mb-8">
                 <h2 className="text-2xl font-bold text-gray-800 mb-6">Day-by-Day Itinerary</h2>
-                <div className="space-y-4">
+                <div className="space-y-6">
                   {itinerary.map((day: any, index: number) => (
                     <div key={index} className="bg-white border-l-4 border-blue-600 shadow-sm rounded-r-lg p-6 hover:shadow-md transition-shadow">
-                      <h3 className="text-lg font-bold text-gray-800 mb-2">Day {day.day}: {day.title}</h3>
-                      <p className="text-gray-600 leading-relaxed">{day.description}</p>
+                      <h3 className="text-lg font-bold text-gray-800 mb-4">Day {day.day}: {day.title}</h3>
+                      {day.activities && day.activities.length > 0 ? (
+                        <div className="space-y-3">
+                          {day.activities.map((activity: any, activityIndex: number) => (
+                            <div key={activityIndex} className="flex items-start space-x-3">
+                              <Clock className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                              <div>
+                                <span className="font-semibold text-gray-800">{activity.time}</span>
+                                <span className="text-gray-600"> - {activity.activity}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-gray-600 leading-relaxed">{day.description}</p>
+                      )}
                     </div>
                   ))}
                 </div>

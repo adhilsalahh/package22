@@ -134,7 +134,7 @@ export const HomePage = () => {
                   <img
                     src="/header image.jpg"
                     alt="Adventure"
-                    className="w-full h-[500px] object-cover"
+                    className="w-full h-64 sm:h-80 md:h-96 lg:h-[500px] object-cover object-center"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
                   <div className="absolute bottom-0 left-0 right-0 p-8 text-white">
@@ -175,11 +175,11 @@ export const HomePage = () => {
                   style={{ animationDelay: `${index * 100}ms` }}
                   onClick={() => navigate(`/package/${pkg.id}`)}
                 >
-                  <div className="relative h-72 overflow-hidden">
+                  <div className="relative h-56 sm:h-64 md:h-72 overflow-hidden">
                     <img
                       src={pkg.image_url || 'https://images.pexels.com/photos/2437291/pexels-photo-2437291.jpeg'}
                       alt={pkg.title}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                      className="w-full h-full object-cover object-center group-hover:scale-110 transition-transform duration-700"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
                     <div className="absolute bottom-4 left-4 right-4">
@@ -318,7 +318,7 @@ export const HomePage = () => {
             {galleryImages.map((image, index) => (
               <div
                 key={index}
-                className="group relative h-72 rounded-2xl overflow-hidden cursor-pointer transform hover:scale-105 transition-all duration-500"
+                className="group relative h-48 sm:h-56 md:h-64 lg:h-72 rounded-2xl overflow-hidden cursor-pointer transform hover:scale-105 transition-all duration-500"
                 style={{
                   animationDelay: `${index * 100}ms`
                 }}
@@ -326,7 +326,7 @@ export const HomePage = () => {
                 <img
                   src={image.url}
                   alt={image.title}
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                  className="w-full h-full object-cover object-center group-hover:scale-110 transition-transform duration-700"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-60 group-hover:opacity-90 transition-opacity"></div>
                 <div className="absolute bottom-0 left-0 right-0 p-6 transform translate-y-2 group-hover:translate-y-0 transition-transform">

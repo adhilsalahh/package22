@@ -73,11 +73,11 @@ export function Packages() {
                 className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow border border-gray-100"
               >
                 {pkg.image_url && (
-                  <div className="h-64 bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center">
+                  <div className="relative w-full h-48 sm:h-56 md:h-64 bg-gradient-to-br from-blue-500 to-blue-700 overflow-hidden">
                     <img
                       src={pkg.image_url}
                       alt={pkg.title}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover object-center"
                     />
                   </div>
                 )}
