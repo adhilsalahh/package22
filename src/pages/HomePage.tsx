@@ -94,8 +94,6 @@ export const HomePage = () => {
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div className="space-y-8 animate-fade-in-up">
               <div className="inline-flex items-center space-x-2 bg-emerald-100 text-emerald-700 px-4 py-2 rounded-full text-sm font-medium">
-                <Mountain className="h-4 w-4" />
-                <span>Adventure Awaits</span>
               </div>
               <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-gray-900 leading-tight">
                 Your Next
@@ -134,7 +132,7 @@ export const HomePage = () => {
                 <div className="absolute -inset-4 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-3xl opacity-20 blur-2xl group-hover:opacity-30 transition-opacity"></div>
                 <div className="relative bg-white rounded-3xl shadow-2xl overflow-hidden transform hover:scale-105 transition-transform duration-500">
                   <img
-                    src="https://images.pexels.com/photos/2387873/pexels-photo-2387873.jpeg"
+                    src="/header image.jpg"
                     alt="Adventure"
                     className="w-full h-[500px] object-cover"
                   />

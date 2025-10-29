@@ -12,7 +12,6 @@ const BookingPage = () => {
   const [pkg, setPkg] = useState<Package | null>(pkgFromState || null);
   const [availableDates, setAvailableDates] = useState<PackageDate[]>([]);
   const [selectedDate, setSelectedDate] = useState(dateFromState?.available_date || '');
-  const [travelGroupName, setTravelGroupName] = useState('');
   const [numberOfMembers, setNumberOfMembers] = useState(2);
   const [member1, setMember1] = useState({ name: '', phone: '' });
   const [member2, setMember2] = useState({ name: '', phone: '' });
@@ -52,7 +51,6 @@ const BookingPage = () => {
     }
   };
 
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -67,7 +65,7 @@ const BookingPage = () => {
       return;
     }
 
-    if (!member2.name.trim() || !member2.phone.trim()) {
+    if (numberOfMembers >= 2 && (!member2.name.trim() || !member2.phone.trim())) {
       setError('Please fill in all details for Person 2');
       return;
     }
@@ -78,6 +76,7 @@ const BookingPage = () => {
       const totalPrice = pkg!.price_per_head * numberOfMembers;
       const advancePaid = pkg!.advance_payment * numberOfMembers;
 
+      // Build WhatsApp message dynamically
       const whatsappMessage = `Hi, I would like to book ${pkg!.title}
 
 Date: ${new Date(selectedDate).toLocaleDateString()}
@@ -85,13 +84,13 @@ Number of Members: ${numberOfMembers}
 Total Price: ₹${totalPrice}
 Advance Payment: ₹${advancePaid}
 
-Contact Person 1:
+${numberOfMembers >= 1 ? `Contact Person 1:
 Name: ${member1.name}
-Phone: ${member1.phone}
+Phone: ${member1.phone}` : ''}
 
-Contact Person 2:
+${numberOfMembers >= 2 ? `Contact Person 2:
 Name: ${member2.name}
-Phone: ${member2.phone}`;
+Phone: ${member2.phone}` : ''}`;
 
       const whatsappUrl = `https://wa.me/917592049934?text=${encodeURIComponent(whatsappMessage)}`;
       window.open(whatsappUrl, '_blank');
@@ -150,6 +149,7 @@ Phone: ${member2.phone}`;
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Selected Date */}
             <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 mb-6">
               <div className="flex items-center space-x-3">
                 <Calendar className="h-5 w-5 text-emerald-600 flex-shrink-0" />
@@ -167,29 +167,32 @@ Phone: ${member2.phone}`;
               </div>
             </div>
 
+            {/* Number of Members */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Number of Members <span className="text-red-500">*</span>
               </label>
               <input
                 type="number"
-                min="2"
+                min="1"
                 value={numberOfMembers}
-                onChange={(e) => setNumberOfMembers(Math.max(2, parseInt(e.target.value) || 2))}
+                onChange={(e) => setNumberOfMembers(Math.max(1, parseInt(e.target.value) || 1))}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                 required
               />
               <p className="text-sm text-gray-600 mt-1">
-                You will provide contact details for 2 people below
+                You will provide contact details for {Math.min(numberOfMembers, 2)} {Math.min(numberOfMembers, 2) === 1 ? 'person' : 'people'} below
               </p>
             </div>
 
+            {/* Contact Persons */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-4">
                 Contact Person Details <span className="text-red-500">*</span>
               </label>
 
               <div className="space-y-4">
+                {/* Person 1 */}
                 <div className="border border-gray-200 rounded-lg p-4">
                   <h4 className="font-medium text-gray-900 mb-3">Person 1</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -197,45 +200,49 @@ Phone: ${member2.phone}`;
                       type="text"
                       value={member1.name}
                       onChange={(e) => setMember1({ ...member1, name: e.target.value })}
-                      className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                       placeholder="Full Name"
                       required
+                      className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                     />
                     <input
                       type="tel"
                       value={member1.phone}
                       onChange={(e) => setMember1({ ...member1, phone: e.target.value })}
-                      className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                       placeholder="Phone Number"
                       required
+                      className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                     />
                   </div>
                 </div>
 
-                <div className="border border-gray-200 rounded-lg p-4">
-                  <h4 className="font-medium text-gray-900 mb-3">Person 2</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <input
-                      type="text"
-                      value={member2.name}
-                      onChange={(e) => setMember2({ ...member2, name: e.target.value })}
-                      className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                      placeholder="Full Name"
-                      required
-                    />
-                    <input
-                      type="tel"
-                      value={member2.phone}
-                      onChange={(e) => setMember2({ ...member2, phone: e.target.value })}
-                      className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                      placeholder="Phone Number"
-                      required
-                    />
+                {/* Person 2 (only if members >= 2) */}
+                {numberOfMembers >= 2 && (
+                  <div className="border border-gray-200 rounded-lg p-4">
+                    <h4 className="font-medium text-gray-900 mb-3">Person 2</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <input
+                        type="text"
+                        value={member2.name}
+                        onChange={(e) => setMember2({ ...member2, name: e.target.value })}
+                        placeholder="Full Name"
+                        required
+                        className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                      />
+                      <input
+                        type="tel"
+                        value={member2.phone}
+                        onChange={(e) => setMember2({ ...member2, phone: e.target.value })}
+                        placeholder="Phone Number"
+                        required
+                        className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                      />
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             </div>
 
+            {/* Booking Summary */}
             <div className="bg-gray-50 rounded-lg p-6 space-y-3">
               <h3 className="font-bold text-gray-900 text-lg mb-4">Booking Summary</h3>
               <div className="flex justify-between text-gray-700">
@@ -259,6 +266,7 @@ Phone: ${member2.phone}`;
               </p>
             </div>
 
+            {/* WhatsApp Info */}
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <div className="flex items-start space-x-3">
                 <MessageCircle className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />

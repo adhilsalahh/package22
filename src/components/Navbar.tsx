@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Mountain, Menu, X, User, LogOut, LayoutDashboard } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-
+import logo from '../public/Va oru trippadikkam.jpg';
 export const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user, profile, signOut, isAdmin } = useAuth();
@@ -23,16 +23,17 @@ export const Navbar = () => {
     <nav className="bg-white/95 backdrop-blur-md shadow-lg sticky top-0 z-50 border-b border-gray-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          <div
+            <div
             className="flex items-center cursor-pointer group"
             onClick={() => navigate('/')}
           >
-            <div className="relative">
-              <Mountain className="h-8 w-8 text-emerald-600 group-hover:scale-110 group-hover:rotate-12 transition-all duration-300" />
-              <div className="absolute inset-0 bg-emerald-600 blur-lg opacity-0 group-hover:opacity-30 transition-opacity"></div>
-            </div>
-            <span className="ml-2 text-xl font-bold text-gray-900 group-hover:text-emerald-600 transition-colors">
-             Va Oru Trippadikkam
+            <img
+              src="/Va oru trippadikkam.jpg"  // ✅ correct way for public folder
+              alt="Va Oru Trippadikkam Logo"
+              className="h-10 w-auto rounded-md shadow-sm transition-transform duration-300 group-hover:scale-110"
+            />
+            <span className="ml-3 text-lg font-bold text-gray-900 group-hover:text-emerald-600 transition-colors">
+              Va Oru Trippadikkam
             </span>
           </div>
 
