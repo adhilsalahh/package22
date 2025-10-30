@@ -27,11 +27,11 @@ export const HomePage = () => {
   };
 
 const galleryImages = [
-  { url: '/forest tr.jpg' },
-  { url: '/advanjer1.HEIC' },
-  { url: '/mountain (1).jpg' },
+  { url: '/advanjer2.jpg' },
+  { url: '/advanjer4.jpg' },
+  { url: '/meeshapulimala_gallery1.jpg' },
   { url: '/meeshapulimala_gallery3.jpg' },
-  { url: '/advanjer 3.jpg' },
+  { url: '/kolukumalai 4.jpg' },
   { url: '/meeshapulimala_gallery2.jpg' },
 ];
 
