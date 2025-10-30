@@ -26,38 +26,14 @@ export const HomePage = () => {
     }
   };
 
-  const galleryImages = [
-    {
-      url: 'https://images.pexels.com/photos/869258/pexels-photo-869258.jpeg',
-      title: 'Mountain Adventures',
-      description: 'Conquer peaks'
-    },
-    {
-      url: 'https://images.pexels.com/photos/1612351/pexels-photo-1612351.jpeg',
-      title: 'Forest Trails',
-      description: 'Explore nature'
-    },
-    {
-      url: 'https://images.pexels.com/photos/2387873/pexels-photo-2387873.jpeg',
-      title: 'Camping Nights',
-      description: 'Under the stars'
-    },
-    {
-      url: 'https://images.pexels.com/photos/2398220/pexels-photo-2398220.jpeg',
-      title: 'Scenic Views',
-      description: 'Breathtaking moments'
-    },
-    {
-      url: 'https://images.pexels.com/photos/1670732/pexels-photo-1670732.jpeg',
-      title: 'Group Treks',
-      description: 'Join the adventure'
-    },
-    {
-      url: 'https://images.pexels.com/photos/2437291/pexels-photo-2437291.jpeg',
-      title: 'Peak Expedition',
-      description: 'Reach new heights'
-    }
-  ];
+const galleryImages = [
+  { url: '/forest tr.jpg' },
+  { url: '/advanjer1.HEIC' },
+  { url: '/mountain (1).jpg' },
+  { url: '/meeshapulimala_gallery3.jpg' },
+  { url: '/advanjer 3.jpg' },
+  { url: '/meeshapulimala_gallery2.jpg' },
+];
 
   useEffect(() => {
     const interval = setInterval(() => {
