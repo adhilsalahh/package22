@@ -66,7 +66,14 @@ export default function AppRouter() {
                 <Route path="/" element={<HomePage />} />
                 <Route path="/packages" element={<Packages />} />
                 <Route path="/package/:id" element={<PackageDetails />} />
-                <Route path="/booking/:id" element={<BookingPage />} />
+                <Route
+                  path="/booking/:id"
+                  element={
+                    <ProtectedRoute requireAuth>
+                      <BookingPage />
+                    </ProtectedRoute>
+                  }
+                />
                 <Route
                   path="/payment/:id"
                   element={

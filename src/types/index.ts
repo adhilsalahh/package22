@@ -67,7 +67,7 @@ export interface PackageAvailableDate {
 
 export interface Booking {
   id: string;
-  user_id: string | null;
+  user_id: string;
   package_id: string;
   booking_date: string;
   travel_group_name: string;
@@ -78,11 +78,6 @@ export interface Booking {
   payment_status: 'advance_paid' | 'fully_paid';
   whatsapp_conversation_link?: string;
   admin_notes?: string;
-  guest_name?: string;
-  guest_email?: string;
-  guest_phone?: string;
-  booking_reference?: string;
-  booking_type?: 'authenticated' | 'guest';
   created_at: string;
   updated_at: string;
   package?: Package;

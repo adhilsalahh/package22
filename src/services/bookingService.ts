@@ -1,12 +1,6 @@
 import { supabase } from '../lib/supabase';
 import { Booking, BookingMember, DashboardMetrics } from '../types';
 
-function generateBookingReference(): string {
-  const timestamp = Date.now().toString(36).toUpperCase();
-  const random = Math.random().toString(36).substring(2, 6).toUpperCase();
-  return `BK-${timestamp}-${random}`;
-}
-
 export const bookingService = {
   async createBooking(
     bookingData: {
@@ -27,8 +21,6 @@ export const bookingService = {
       .insert({
         ...bookingData,
         user_id: user.id,
-        booking_type: 'authenticated',
-        booking_reference: generateBookingReference(),
       })
       .select()
       .single();
@@ -50,47 +42,6 @@ export const bookingService = {
       row_id: bookingData.package_id,
       x: 1,
     });
-
-    return booking;
-  },
-
-  async createGuestBooking(
-    bookingData: {
-      package_id: string;
-      booking_date: string;
-      travel_group_name: string;
-      number_of_members: number;
-      total_price: number;
-      advance_paid: number;
-      guest_name: string;
-      guest_email: string;
-      guest_phone: string;
-    },
-    members: { member_name: string; member_phone: string }[]
-  ): Promise<Booking> {
-    const { data: booking, error: bookingError } = await supabase
-      .from('bookings')
-      .insert({
-        ...bookingData,
-        user_id: null,
-        booking_type: 'guest',
-        booking_reference: generateBookingReference(),
-      })
-      .select()
-      .single();
-
-    if (bookingError) throw bookingError;
-
-    const membersWithBookingId = members.map(member => ({
-      ...member,
-      booking_id: booking.id,
-    }));
-
-    const { error: membersError } = await supabase
-      .from('booking_members')
-      .insert(membersWithBookingId);
-
-    if (membersError) throw membersError;
 
     return booking;
   },
