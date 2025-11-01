@@ -41,11 +41,6 @@ export function PackageDetails() {
   };
 
   const handleBookNow = () => {
-    if (!user) {
-      navigate('/login');
-      return;
-    }
-
     if (!selectedDate) {
       alert('Please select a travel date');
       return;

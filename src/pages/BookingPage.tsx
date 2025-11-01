@@ -3,6 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Calendar, ChevronLeft, MessageCircle } from 'lucide-react';
 import { supabase, Package, PackageDate } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { bookingService } from '../services/bookingService';
 
 const BookingPage = () => {
   const { id: packageId } = useParams<{ id: string }>();
@@ -19,16 +20,15 @@ const BookingPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const { user } = useAuth();
+  const [guestName, setGuestName] = useState('');
+  const [guestEmail, setGuestEmail] = useState('');
+  const [guestPhone, setGuestPhone] = useState('');
 
   useEffect(() => {
-    if (!user) {
-      navigate('/login');
-      return;
-    }
     if (!pkgFromState && packageId) {
       loadData();
     }
-  }, [packageId, user]);
+  }, [packageId]);
 
   const loadData = async () => {
     if (!packageId) return;
@@ -70,13 +70,40 @@ const BookingPage = () => {
       return;
     }
 
+    if (!user) {
+      if (!guestName.trim() || !guestEmail.trim() || !guestPhone.trim()) {
+        setError('Please fill in your contact information');
+        return;
+      }
+    }
+
     setSubmitting(true);
 
     try {
       const totalPrice = pkg!.price_per_head * numberOfMembers;
       const advancePaid = pkg!.advance_payment * numberOfMembers;
 
-      // Build WhatsApp message dynamically
+      const members = [];
+      if (member1.name.trim()) members.push({ member_name: member1.name, member_phone: member1.phone });
+      if (numberOfMembers >= 2 && member2.name.trim()) members.push({ member_name: member2.name, member_phone: member2.phone });
+
+      if (!user) {
+        await bookingService.createGuestBooking(
+          {
+            package_id: pkg!.id,
+            booking_date: selectedDate,
+            travel_group_name: guestName,
+            number_of_members: numberOfMembers,
+            total_price: totalPrice,
+            advance_paid: advancePaid,
+            guest_name: guestName,
+            guest_email: guestEmail,
+            guest_phone: guestPhone,
+          },
+          members
+        );
+      }
+
       const whatsappMessage = `Hi, I would like to book ${pkg!.title}
 
 Date: ${new Date(selectedDate).toLocaleDateString()}
@@ -114,7 +141,7 @@ Phone: ${member2.phone}` : ''}`;
     );
   }
 
-  if (!pkg || !user) {
+  if (!pkg) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -241,6 +268,54 @@ Phone: ${member2.phone}` : ''}`;
                 )}
               </div>
             </div>
+
+            {/* Guest Contact Information (if not logged in) */}
+            {!user && (
+              <div className="border-t pt-6">
+                <h3 className="font-bold text-gray-900 text-lg mb-4">Your Contact Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Your Name <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={guestName}
+                      onChange={(e) => setGuestName(e.target.value)}
+                      placeholder="Enter your name"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Email <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="email"
+                      value={guestEmail}
+                      onChange={(e) => setGuestEmail(e.target.value)}
+                      placeholder="your@email.com"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Phone <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="tel"
+                      value={guestPhone}
+                      onChange={(e) => setGuestPhone(e.target.value)}
+                      placeholder="Enter your phone number"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Booking Summary */}
             <div className="bg-gray-50 rounded-lg p-6 space-y-3">
