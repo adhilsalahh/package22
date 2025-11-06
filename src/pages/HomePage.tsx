@@ -28,11 +28,11 @@ export const HomePage = () => {
 
 const galleryImages = [
   { url: '/advanjer2.jpg' },
-  { url: '/advanjer4.jpg' },
-  { url: '/meeshapulimala_gallery1.jpg' },
-  { url: '/meeshapulimala_gallery3.jpg' },
-  { url: '/kolukumalai 4.jpg' },
-  { url: '/meeshapulimala_gallery2.jpg' },
+  { url: '/kolukumalai4.jpg' },
+  { url: '/advanter 6.jpg' },
+  { url: '/meeshapulimala_header11.jpg' },
+  { url: '/meeshapulimala_header1.jpg' },
+  { url: '/kolukumalai7.jpg' },
 ];
 
   useEffect(() => {
