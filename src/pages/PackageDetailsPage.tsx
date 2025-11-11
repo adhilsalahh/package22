@@ -77,8 +77,8 @@ export const PackageDetailsPage = ({ packageId, onNavigate }: PackageDetailsPage
   };
 
   const handleWhatsAppContact = () => {
-    const message = `Hi, I'm interested in booking ${pkg.title}. Can you provide more details?`;
-    const whatsappUrl = `https://wa.me/${pkg.contact_info?.phone}?text=${encodeURIComponent(message)}`;
+    const message = Hi, I'm interested in booking ${pkg.title}. Can you provide more details?;
+    const whatsappUrl = https://wa.me/${pkg.contact_info?.phone}?text=${encodeURIComponent(message)};
     window.open(whatsappUrl, '_blank');
   };
 
@@ -119,9 +119,9 @@ export const PackageDetailsPage = ({ packageId, onNavigate }: PackageDetailsPage
                     <button
                       key={index}
                       onClick={() => setCurrentImageIndex(index)}
-                      className={`w-2 h-2 rounded-full transition-colors ${
+                      className={w-2 h-2 rounded-full transition-colors ${
                         index === currentImageIndex ? 'bg-white' : 'bg-white/50'
-                      }`}
+                      }}
                     />
                   ))}
                 </div>
@@ -249,4 +249,4 @@ export const PackageDetailsPage = ({ packageId, onNavigate }: PackageDetailsPage
       </div>
     </div>
   );
-};
+}; 

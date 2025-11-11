@@ -11,7 +11,7 @@ const BookingPage = () => {
   const { package: pkgFromState, date: dateFromState } = location.state || {};
   const [pkg, setPkg] = useState<Package | null>(pkgFromState || null);
   const [availableDates, setAvailableDates] = useState<PackageDate[]>([]);
-  const [selectedDate, setSelectedDate] = useState(dateFromState?.available_date || '');
+  const [selectedDate, setSelectedDate] = useState<string>(dateFromState || '');
   const [numberOfMembers, setNumberOfMembers] = useState(2);
   const [member1, setMember1] = useState({ name: '', phone: '' });
   const [member2, setMember2] = useState({ name: '', phone: '' });
@@ -76,7 +76,6 @@ const BookingPage = () => {
       const totalPrice = pkg!.price_per_head * numberOfMembers;
       const advancePaid = pkg!.advance_payment * numberOfMembers;
 
-      // Build WhatsApp message dynamically
       const whatsappMessage = `Hi, I would like to book ${pkg!.title}
 
 Date: ${new Date(selectedDate).toLocaleDateString()}
@@ -149,20 +148,22 @@ Phone: ${member2.phone}` : ''}`;
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Selected Date */}
+            {/* Selected Date Picker */}
             <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 mb-6">
               <div className="flex items-center space-x-3">
-                <Calendar className="h-5 w-5 text-emerald-600 flex-shrink-0" />
-                <div>
-                  <p className="text-sm font-medium text-gray-700">Selected Date</p>
-                  <p className="text-lg font-bold text-gray-900">
-                    {selectedDate ? new Date(selectedDate).toLocaleDateString('en-IN', {
-                      weekday: 'long',
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric',
-                    }) : 'Not selected'}
-                  </p>
+                <div className="w-full">
+                  <p className="text-sm font-medium text-gray-700">Select Date</p>
+                  
+                  {selectedDate && (
+                    <p className="text-lg font-bold text-gray-900 mt-2">
+                      Selected: {new Date(selectedDate).toLocaleDateString('en-IN', {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                      })}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
