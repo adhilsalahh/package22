@@ -95,7 +95,7 @@ const Login: React.FC = () => {
                   value={formData.name}
                   onChange={handleChange}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  placeholder="John Doe"
+                  placeholder=""
                   required
                 />
               </div>
@@ -111,7 +111,7 @@ const Login: React.FC = () => {
                   value={formData.email}
                   onChange={handleChange}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  placeholder="john@example.com"
+                  placeholder=""
                   required
                 />
               </div>
@@ -127,7 +127,7 @@ const Login: React.FC = () => {
                   value={formData.phone}
                   onChange={handleChange}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  placeholder="+1 234 567 8900"
+                  placeholder=""
                   required
                 />
               </div>
@@ -162,7 +162,7 @@ const Login: React.FC = () => {
                   value={formData.identifier}
                   onChange={handleChange}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  placeholder="john@example.com or John Doe"
+                  placeholder=""
                   required
                 />
               </div>
