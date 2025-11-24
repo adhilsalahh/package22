@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "./contexts/AuthContext";
 import { Navbar } from "./components/Navbar";
 import { HomePage } from "./pages/HomePage";
@@ -14,15 +14,9 @@ import PaymentPage from "./pages/PaymentPage";
 import RemainingPaymentPage from "./pages/RemainingPaymentPage";
 import UserBookings from "./pages/UserBookings";
 
-function ProtectedRoute({
-  children,
-  requireAuth = false,
-}: {
-  children: React.ReactNode;
-  requireAuth?: boolean;
-}) {
+function ProtectedRoute({ children, requireAuth = false }) {
   const { user, loading } = useAuth();
-
+  
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -35,76 +29,73 @@ function ProtectedRoute({
     return <Navigate to="/login" replace />;
   }
 
-  return <>{children}</>;
+  return children;
+}
+
+function UserLayout() {
+  return (
+    <>
+      <Navbar />
+      <Outlet />
+    </>
+  );
 }
 
 export default function AppRouter() {
-  const { loading } = useAuth();
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gray-50">
       <Routes>
-        {/* Admin routes */}
+
+        {/* Admin Route */}
         <Route path="/admin-login" element={<AdminLogin />} />
         <Route path="/admin/*" element={<AdminDashboard />} />
 
-        {/* User-facing routes */}
-        <Route
-          path="/*"
-          element={
-            <>
-              <Navbar />
-              <Routes>
-                <Route path="/" element={<HomePage />} />
-                <Route path="/packages" element={<Packages />} />
-                <Route path="/package/:id" element={<PackageDetails />} />
-                <Route
-                  path="/booking/:id"
-                  element={
-                    <ProtectedRoute requireAuth>
-                      <BookingPage />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/payment/:id"
-                  element={
-                    <ProtectedRoute requireAuth>
-                      <PaymentPage />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/remaining-payment/:id"
-                  element={
-                    <ProtectedRoute requireAuth>
-                      <RemainingPaymentPage />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/bookings"
-                  element={
-                    <ProtectedRoute requireAuth>
-                      <UserBookings />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route path="/contact" element={<Contact />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/signup" element={<Signup />} />
-              </Routes>
-            </>
-          }
-        />
+        {/* User Layout */}
+        <Route element={<UserLayout />}>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/packages" element={<Packages />} />
+          <Route path="/package/:id" element={<PackageDetails />} />
+          
+          {/* Protected Routes */}
+          <Route
+            path="/booking/:id"
+            element={
+              <ProtectedRoute requireAuth>
+                <BookingPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/payment/:id"
+            element={
+              <ProtectedRoute requireAuth>
+                <PaymentPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/remaining-payment/:id"
+            element={
+              <ProtectedRoute requireAuth>
+                <RemainingPaymentPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/bookings"
+            element={
+              <ProtectedRoute requireAuth>
+                <UserBookings />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Public */}
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+        </Route>
+
       </Routes>
     </div>
   );
