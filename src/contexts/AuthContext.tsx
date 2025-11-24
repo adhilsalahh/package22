@@ -1,83 +1,109 @@
-import { createContext, useContext, useEffect, useState } from "react";
-import { createClient, Session, User } from "@supabase/supabase-js";
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { User } from '@supabase/supabase-js';
+import { supabase } from '../lib/supabase';
+import { Profile } from '../types';
 
-// ✅ Vite ENV — FIXED (use import.meta.env)
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
-
-// ✅ Create Supabase client
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-type AuthContextType = {
+interface AuthContextType {
   user: User | null;
+  profile: Profile | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<any>;
+  signIn: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string, fullName: string, phone: string) => Promise<void>;
   signOut: () => Promise<void>;
-  isAdmin: () => boolean;
-};
+  isAdmin: boolean;
+}
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const useAuth = () => {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
-  return ctx;
-};
-
-export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // ✅ Load auth state on startup
+  // Fetch profile
+  const fetchProfile = async (userId: string) => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (!error && data) {
+      setProfile(data);
+    }
+  };
+
+  // Load Session
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setUser(data.session?.user ?? null);
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      if (session?.user) fetchProfile(session.user.id);
       setLoading(false);
     });
 
-    // Listen to auth state changes
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      (async () => {
+        setUser(session?.user ?? null);
+        if (session?.user) {
+          await fetchProfile(session.user.id);
+        } else {
+          setProfile(null);
+        }
+        setLoading(false);
+      })();
     });
 
-    return () => listener.subscription.unsubscribe();
+    return () => subscription.unsubscribe();
   }, []);
 
-  // ✅ New Supabase v2 signIn
-  async function signIn(email: string, password: string) {
-    const { data, error } = await supabase.auth.signInWithPassword({
+  // Login
+  const signIn = async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+  };
+
+  // SIGN UP (WORKING FIX)
+  const signUp = async (email: string, password: string, fullName: string, phone: string) => {
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        data: { full_name: fullName },
+      },
     });
 
-    if (!error && data.user) {
-      setUser(data.user);
+    if (error) throw error;
+
+    const user = data.user;
+    if (user) {
+      await supabase.from('profiles').insert({
+        id: user.id,
+        full_name: fullName,
+        phone: phone,
+        is_admin: false,
+      });
     }
+  };
 
-    return error ? { error } : null;
-  }
+  // Logout
+  const signOut = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
+  };
 
-  async function signOut() {
-    await supabase.auth.signOut();
-    setUser(null);
-  }
-
-  // OPTIONAL: simple admin check
-  function isAdmin() {
-    return user?.email === "admin@gmail.com"; // change if needed
-  }
+  const isAdmin = profile?.is_admin ?? false;
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        loading,
-        signIn,
-        signOut,
-        isAdmin,
-      }}
+    <AuthContext.Provider 
+      value={{ user, profile, loading, signIn, signUp, signOut, isAdmin }}
     >
       {children}
     </AuthContext.Provider>
   );
+};
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) throw new Error('useAuth must be used within AuthProvider');
+  return context;
 };

@@ -16,7 +16,7 @@ import UserBookings from "./pages/UserBookings";
 
 function ProtectedRoute({ children, requireAuth = false }) {
   const { user, loading } = useAuth();
-  
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -29,7 +29,7 @@ function ProtectedRoute({ children, requireAuth = false }) {
     return <Navigate to="/login" replace />;
   }
 
-  return children;
+  return <>{children}</>;
 }
 
 function UserLayout() {
@@ -46,8 +46,10 @@ export default function AppRouter() {
     <div className="min-h-screen bg-gray-50">
       <Routes>
 
-        {/* Admin Route */}
+        {/* Admin Login */}
         <Route path="/admin-login" element={<AdminLogin />} />
+
+        {/* Admin Dashboard */}
         <Route path="/admin/*" element={<AdminDashboard />} />
 
         {/* User Layout */}
@@ -55,8 +57,8 @@ export default function AppRouter() {
           <Route path="/" element={<HomePage />} />
           <Route path="/packages" element={<Packages />} />
           <Route path="/package/:id" element={<PackageDetails />} />
-          
-          {/* Protected Routes */}
+
+          {/* Protected User Routes */}
           <Route
             path="/booking/:id"
             element={
@@ -65,6 +67,7 @@ export default function AppRouter() {
               </ProtectedRoute>
             }
           />
+
           <Route
             path="/payment/:id"
             element={
@@ -73,6 +76,7 @@ export default function AppRouter() {
               </ProtectedRoute>
             }
           />
+
           <Route
             path="/remaining-payment/:id"
             element={
@@ -81,6 +85,7 @@ export default function AppRouter() {
               </ProtectedRoute>
             }
           />
+
           <Route
             path="/bookings"
             element={
@@ -90,7 +95,7 @@ export default function AppRouter() {
             }
           />
 
-          {/* Public */}
+          {/* Public Routes */}
           <Route path="/contact" element={<Contact />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
