@@ -14,7 +14,8 @@ import PaymentPage from "./pages/PaymentPage";
 import RemainingPaymentPage from "./pages/RemainingPaymentPage";
 import UserBookings from "./pages/UserBookings";
 
-function ProtectedRoute({ children, requireAuth = false }) {
+// ------------------ USER PROTECTED ROUTE ------------------
+function ProtectedRoute({ children, requireAuth = false }: { children: React.ReactNode; requireAuth?: boolean }) {
   const { user, loading } = useAuth();
 
   if (loading) {
@@ -32,6 +33,26 @@ function ProtectedRoute({ children, requireAuth = false }) {
   return <>{children}</>;
 }
 
+// ------------------ ADMIN PROTECTED ROUTE ------------------
+function AdminProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { isAdmin, user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (!user || !isAdmin) {
+    return <Navigate to="/admin-login" replace />;
+  }
+
+  return <>{children}</>;
+}
+
+// ------------------ USER LAYOUT ------------------
 function UserLayout() {
   return (
     <>
@@ -41,16 +62,18 @@ function UserLayout() {
   );
 }
 
+// ------------------ APP ROUTER ------------------
 export default function AppRouter() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Routes>
-
-        {/* Admin Login */}
+        {/* Admin Routes */}
         <Route path="/admin-login" element={<AdminLogin />} />
-
-        {/* Admin Dashboard */}
-        <Route path="/admin/*" element={<AdminDashboard />} />
+        <Route path="/admin/*" element={
+          <AdminProtectedRoute>
+            <AdminDashboard />
+          </AdminProtectedRoute>
+        } />
 
         {/* User Layout */}
         <Route element={<UserLayout />}>
@@ -59,41 +82,10 @@ export default function AppRouter() {
           <Route path="/package/:id" element={<PackageDetails />} />
 
           {/* Protected User Routes */}
-          <Route
-            path="/booking/:id"
-            element={
-              <ProtectedRoute requireAuth>
-                <BookingPage />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/payment/:id"
-            element={
-              <ProtectedRoute requireAuth>
-                <PaymentPage />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/remaining-payment/:id"
-            element={
-              <ProtectedRoute requireAuth>
-                <RemainingPaymentPage />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/bookings"
-            element={
-              <ProtectedRoute requireAuth>
-                <UserBookings />
-              </ProtectedRoute>
-            }
-          />
+          <Route path="/booking/:id" element={<ProtectedRoute requireAuth><BookingPage /></ProtectedRoute>} />
+          <Route path="/payment/:id" element={<ProtectedRoute requireAuth><PaymentPage /></ProtectedRoute>} />
+          <Route path="/remaining-payment/:id" element={<ProtectedRoute requireAuth><RemainingPaymentPage /></ProtectedRoute>} />
+          <Route path="/bookings" element={<ProtectedRoute requireAuth><UserBookings /></ProtectedRoute>} />
 
           {/* Public Routes */}
           <Route path="/contact" element={<Contact />} />
@@ -101,6 +93,8 @@ export default function AppRouter() {
           <Route path="/signup" element={<Signup />} />
         </Route>
 
+        {/* Catch All */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </div>
   );
