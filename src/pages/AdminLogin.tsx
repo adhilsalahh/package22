@@ -1,13 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Shield, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { Toast } from '../components/Toast';
 
-interface AdminLoginProps {
-  onNavigate: (page: string) => void;
-  showToast: (message: string, type: 'success' | 'error') => void;
-}
-
-export function AdminLogin({ onNavigate, showToast }: AdminLoginProps) {
+export function AdminLogin() {
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -15,6 +13,7 @@ export function AdminLogin({ onNavigate, showToast }: AdminLoginProps) {
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [isLocked, setIsLocked] = useState(false);
   const [lockoutTime, setLockoutTime] = useState(0);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -33,6 +32,10 @@ export function AdminLogin({ onNavigate, showToast }: AdminLoginProps) {
     return () => clearInterval(timer);
   }, [isLocked, lockoutTime]);
 
+  const showToast = (message: string, type: 'success' | 'error') => {
+    setToast({ message, type });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -44,28 +47,35 @@ export function AdminLogin({ onNavigate, showToast }: AdminLoginProps) {
     setLoading(true);
 
     try {
-      const { data, error } = await supabase.rpc('verify_admin_login', {
-        login_email: email,
-        login_password: password,
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
       });
 
       if (error) throw error;
 
-      if (!data || data.length === 0) {
-        throw new Error('Invalid credentials');
+      if (!data.user) {
+        throw new Error('Login failed');
       }
 
-      const admin = data[0];
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('id, email, full_name, is_admin')
+        .eq('id', data.user.id)
+        .maybeSingle();
 
-      await supabase.rpc('update_admin_last_login', {
-        admin_id: admin.admin_id,
-      });
+      if (profileError) throw profileError;
 
-      localStorage.setItem('admin_user', JSON.stringify(admin));
+      if (!profile?.is_admin) {
+        await supabase.auth.signOut();
+        throw new Error('Admin access required');
+      }
+
+      localStorage.setItem('admin_user', JSON.stringify(profile));
 
       setFailedAttempts(0);
       showToast('Admin login successful!', 'success');
-      onNavigate('admin-dashboard');
+      setTimeout(() => navigate('/admin'), 1000);
     } catch (error: any) {
       console.error('Admin login error:', error);
 
@@ -177,7 +187,7 @@ export function AdminLogin({ onNavigate, showToast }: AdminLoginProps) {
 
           <div className="mt-6 text-center">
             <button
-              onClick={() => onNavigate('home')}
+              onClick={() => navigate('/')}
               className="text-gray-600 hover:underline text-sm"
             >
               Back to Home
@@ -185,6 +195,14 @@ export function AdminLogin({ onNavigate, showToast }: AdminLoginProps) {
           </div>
         </div>
       </div>
+
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
     </div>
   );
 }

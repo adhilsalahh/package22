@@ -1,26 +1,31 @@
-import { useState, useEffect } from 'react';
-import { Package, Calendar, Users, BookOpen, LogOut, Settings } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Package, Users, BookOpen, LogOut, Settings } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabase';
 import { PackageManagement } from '../components/admin/PackageManagement';
 import { BookingManagement } from '../components/admin/BookingManagement';
 import { UserManagement } from '../components/admin/UserManagement';
 import { PaymentReport } from '../components/admin/PaymentReport';
+import { Toast } from '../components/Toast';
 
-interface AdminDashboardProps {
-  onNavigate: (page: string) => void;
-  showToast: (message: string, type: 'success' | 'error') => void;
-}
-
-export function AdminDashboard({ onNavigate, showToast }: AdminDashboardProps) {
-  const [activeTab, setActiveTab] = useState<'packages' | 'bookings' | 'users' | 'reports'>('packages');
+export function AdminDashboard() {
+  const navigate = useNavigate();
   const { signOut, profile } = useAuth();
+  const [activeTab, setActiveTab] = useState<'packages' | 'bookings' | 'users' | 'reports'>('packages');
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+  const showToast = (message: string, type: 'success' | 'error') => {
+    setToast({ message, type });
+  };
 
   const handleSignOut = async () => {
     try {
       await signOut();
-      onNavigate('home');
+      navigate('/');
     } catch (error) {
       console.error('Sign out error:', error);
+      showToast('Error signing out', 'error');
     }
   };
 
@@ -40,13 +45,13 @@ export function AdminDashboard({ onNavigate, showToast }: AdminDashboardProps) {
               <h1 className="text-xl font-bold">Admin Dashboard</h1>
               {profile && (
                 <span className="ml-4 text-sm text-gray-400">
-                  Welcome, {profile.username}
+                  Welcome, {profile.full_name || profile.email}
                 </span>
               )}
             </div>
             <div className="flex items-center space-x-4">
               <button
-                onClick={() => onNavigate('home')}
+                onClick={() => navigate('/')}
                 className="text-gray-300 hover:text-white transition-colors"
               >
                 View Site
@@ -93,6 +98,14 @@ export function AdminDashboard({ onNavigate, showToast }: AdminDashboardProps) {
         {activeTab === 'users' && <UserManagement showToast={showToast} />}
         {activeTab === 'reports' && <PaymentReport showToast={showToast} />}
       </div>
+
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
     </div>
   );
 }
