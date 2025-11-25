@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, Calendar as CalendarIcon, X, Image as ImageIcon, Check } from 'lucide-react';
 import { supabase, Package, PackageDate } from '../../lib/supabase';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface PackageManagementProps {
   showToast: (message: string, type: 'success' | 'error') => void;
