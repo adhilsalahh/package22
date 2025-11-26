@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ChevronLeft } from 'lucide-react';
+import { Calendar, ChevronLeft } from 'lucide-react';
 import { supabase, Package } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -55,12 +55,10 @@ const BookingPage = () => {
       setError('Please select a date');
       return;
     }
-
     if (!member1.name.trim() || !member1.phone.trim()) {
       setError('Please fill in all details for Person 1');
       return;
     }
-
     if (numberOfMembers >= 2 && (!member2.name.trim() || !member2.phone.trim())) {
       setError('Please fill in all details for Person 2');
       return;
@@ -70,50 +68,47 @@ const BookingPage = () => {
     try {
       const totalPrice = pkg!.price_per_head * numberOfMembers;
       const advancePaid = pkg!.advance_payment * numberOfMembers;
+      const travelGroupName = `${member1.name}${numberOfMembers >= 2 ? ` & ${member2.name}` : ''}`;
 
-      // Insert booking into DB
-      const { error: insertError } = await supabase.from('bookings').insert({
-        package_id: pkg!.id,
-        booking_date: selectedDate, // user selected date
-        selected_travel_dates: selectedDate,
-        number_of_members: numberOfMembers,
-        guest_name:
-          member1.name + (numberOfMembers >= 2 ? `, ${member2.name}` : ''),
-        guest_phone:
-          member1.phone + (numberOfMembers >= 2 ? `, ${member2.phone}` : ''),
-        total_price: totalPrice,
-        advance_paid: advancePaid,
-        status: 'pending',
-        user_id: user!.id,
-        booking_type: 'user',
-      });
+      // Insert booking
+      const { data: bookingData, error: insertError } = await supabase
+        .from('bookings')
+        .insert({
+          user_id: user!.id,
+          package_id: pkg!.id,
+          booking_date: selectedDate,
+          travel_group_name: travelGroupName,
+          number_of_members: numberOfMembers,
+          total_price: totalPrice,
+          advance_paid: advancePaid,
+          status: 'pending',
+          payment_status: 'advance_paid',
+        })
+        .select()
+        .single();
 
       if (insertError) throw insertError;
 
-      // Prepare WhatsApp message
-      const whatsappMessage = `Hi, I would like to book ${pkg!.title}
+      const bookingId = bookingData.id;
 
-Date: ${new Date(selectedDate).toLocaleDateString()}
-Number of Members: ${numberOfMembers}
-Total Price: ₹${totalPrice}
-Advance Payment: ₹${advancePaid}
+      // Insert booking members
+      const membersToInsert = [
+        { booking_id: bookingId, member_name: member1.name, member_phone: member1.phone },
+        ...(numberOfMembers >= 2
+          ? [{ booking_id: bookingId, member_name: member2.name, member_phone: member2.phone }]
+          : []),
+      ];
 
-${numberOfMembers >= 1 ? `Contact Person 1:
-Name: ${member1.name}
-Phone: ${member1.phone}` : ''}
+      const { error: membersError } = await supabase
+        .from('booking_members')
+        .insert(membersToInsert);
 
-${numberOfMembers >= 2 ? `Contact Person 2:
-Name: ${member2.name}
-Phone: ${member2.phone}` : ''}`;
-
-      const whatsappUrl = `https://wa.me/917592049934?text=${encodeURIComponent(
-        whatsappMessage
-      )}`;
-      window.open(whatsappUrl, '_blank');
+      if (membersError) throw membersError;
 
       alert('Booking confirmed! Admin will review your booking.');
       navigate('/bookings');
     } catch (err: any) {
+      console.error(err);
       setError(err.message || 'Failed to create booking');
     } finally {
       setSubmitting(false);
@@ -166,7 +161,6 @@ Phone: ${member2.phone}` : ''}`;
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Date Picker */}
             <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 mb-6">
               <p className="text-sm font-medium text-gray-700">Select Travel Date</p>
               <input
@@ -178,7 +172,6 @@ Phone: ${member2.phone}` : ''}`;
               />
             </div>
 
-            {/* Number of Members */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Number of Members <span className="text-red-500">*</span>
@@ -187,15 +180,12 @@ Phone: ${member2.phone}` : ''}`;
                 type="number"
                 min="1"
                 value={numberOfMembers}
-                onChange={(e) =>
-                  setNumberOfMembers(Math.max(1, parseInt(e.target.value) || 1))
-                }
+                onChange={(e) => setNumberOfMembers(Math.max(1, parseInt(e.target.value) || 1))}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                 required
               />
             </div>
 
-            {/* Contact Persons */}
             <div className="space-y-4">
               <div className="border border-gray-200 rounded-lg p-4">
                 <h4 className="font-medium text-gray-900 mb-3">Person 1</h4>
@@ -244,7 +234,6 @@ Phone: ${member2.phone}` : ''}`;
               )}
             </div>
 
-            {/* Booking Summary */}
             <div className="bg-gray-50 rounded-lg p-6 space-y-3">
               <h3 className="font-bold text-gray-900 text-lg mb-4">Booking Summary</h3>
               <div className="flex justify-between text-gray-700">
