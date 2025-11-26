@@ -1,17 +1,16 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { Calendar, ChevronLeft, MessageCircle } from 'lucide-react';
-import { supabase, Package, PackageDate } from '../lib/supabase';
+import { ChevronLeft } from 'lucide-react';
+import { supabase, Package } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
 const BookingPage = () => {
   const { id: packageId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
-  const { package: pkgFromState, date: dateFromState } = location.state || {};
+  const { package: pkgFromState } = location.state || {};
   const [pkg, setPkg] = useState<Package | null>(pkgFromState || null);
-  const [availableDates, setAvailableDates] = useState<PackageDate[]>([]);
-  const [selectedDate, setSelectedDate] = useState<string>(dateFromState || '');
+  const [selectedDate, setSelectedDate] = useState<string>('');
   const [numberOfMembers, setNumberOfMembers] = useState(2);
   const [member1, setMember1] = useState({ name: '', phone: '' });
   const [member2, setMember2] = useState({ name: '', phone: '' });
@@ -33,16 +32,13 @@ const BookingPage = () => {
   const loadData = async () => {
     if (!packageId) return;
     try {
-      const [pkgResponse, datesResponse] = await Promise.all([
-        supabase.from('packages').select('*').eq('id', packageId).maybeSingle(),
-        supabase.from('package_dates').select('*').eq('package_id', packageId).order('available_date'),
-      ]);
-
-      if (pkgResponse.error) throw pkgResponse.error;
-      if (datesResponse.error) throw datesResponse.error;
-
-      setPkg(pkgResponse.data);
-      setAvailableDates(datesResponse.data || []);
+      const { data, error } = await supabase
+        .from('packages')
+        .select('*')
+        .eq('id', packageId)
+        .maybeSingle();
+      if (error) throw error;
+      setPkg(data);
     } catch (err) {
       console.error(err);
       setError('Failed to load package details');
@@ -71,11 +67,30 @@ const BookingPage = () => {
     }
 
     setSubmitting(true);
-
     try {
       const totalPrice = pkg!.price_per_head * numberOfMembers;
       const advancePaid = pkg!.advance_payment * numberOfMembers;
 
+      // Insert booking into DB
+      const { error: insertError } = await supabase.from('bookings').insert({
+        package_id: pkg!.id,
+        booking_date: selectedDate, // user selected date
+        selected_travel_dates: selectedDate,
+        number_of_members: numberOfMembers,
+        guest_name:
+          member1.name + (numberOfMembers >= 2 ? `, ${member2.name}` : ''),
+        guest_phone:
+          member1.phone + (numberOfMembers >= 2 ? `, ${member2.phone}` : ''),
+        total_price: totalPrice,
+        advance_paid: advancePaid,
+        status: 'pending',
+        user_id: user!.id,
+        booking_type: 'user',
+      });
+
+      if (insertError) throw insertError;
+
+      // Prepare WhatsApp message
       const whatsappMessage = `Hi, I would like to book ${pkg!.title}
 
 Date: ${new Date(selectedDate).toLocaleDateString()}
@@ -91,9 +106,12 @@ ${numberOfMembers >= 2 ? `Contact Person 2:
 Name: ${member2.name}
 Phone: ${member2.phone}` : ''}`;
 
-      const whatsappUrl = `https://wa.me/917592049934?text=${encodeURIComponent(whatsappMessage)}`;
+      const whatsappUrl = `https://wa.me/917592049934?text=${encodeURIComponent(
+        whatsappMessage
+      )}`;
       window.open(whatsappUrl, '_blank');
 
+      alert('Booking confirmed! Admin will review your booking.');
       navigate('/bookings');
     } catch (err: any) {
       setError(err.message || 'Failed to create booking');
@@ -148,24 +166,16 @@ Phone: ${member2.phone}` : ''}`;
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Selected Date Picker */}
+            {/* Date Picker */}
             <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 mb-6">
-              <div className="flex items-center space-x-3">
-                <div className="w-full">
-                  <p className="text-sm font-medium text-gray-700">Select Date</p>
-                  
-                  {selectedDate && (
-                    <p className="text-lg font-bold text-gray-900 mt-2">
-                      Selected: {new Date(selectedDate).toLocaleDateString('en-IN', {
-                        weekday: 'long',
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                      })}
-                    </p>
-                  )}
-                </div>
-              </div>
+              <p className="text-sm font-medium text-gray-700">Select Travel Date</p>
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="mt-2 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                required
+              />
             </div>
 
             {/* Number of Members */}
@@ -177,70 +187,61 @@ Phone: ${member2.phone}` : ''}`;
                 type="number"
                 min="1"
                 value={numberOfMembers}
-                onChange={(e) => setNumberOfMembers(Math.max(1, parseInt(e.target.value) || 1))}
+                onChange={(e) =>
+                  setNumberOfMembers(Math.max(1, parseInt(e.target.value) || 1))
+                }
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                 required
               />
-              <p className="text-sm text-gray-600 mt-1">
-                You will provide contact details for {Math.min(numberOfMembers, 2)} {Math.min(numberOfMembers, 2) === 1 ? 'person' : 'people'} below
-              </p>
             </div>
 
             {/* Contact Persons */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-4">
-                Contact Person Details <span className="text-red-500">*</span>
-              </label>
+            <div className="space-y-4">
+              <div className="border border-gray-200 rounded-lg p-4">
+                <h4 className="font-medium text-gray-900 mb-3">Person 1</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <input
+                    type="text"
+                    value={member1.name}
+                    onChange={(e) => setMember1({ ...member1, name: e.target.value })}
+                    placeholder="Full Name"
+                    required
+                    className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                  />
+                  <input
+                    type="tel"
+                    value={member1.phone}
+                    onChange={(e) => setMember1({ ...member1, phone: e.target.value })}
+                    placeholder="Phone Number"
+                    required
+                    className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
 
-              <div className="space-y-4">
-                {/* Person 1 */}
+              {numberOfMembers >= 2 && (
                 <div className="border border-gray-200 rounded-lg p-4">
-                  <h4 className="font-medium text-gray-900 mb-3">Person 1</h4>
+                  <h4 className="font-medium text-gray-900 mb-3">Person 2</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <input
                       type="text"
-                      value={member1.name}
-                      onChange={(e) => setMember1({ ...member1, name: e.target.value })}
+                      value={member2.name}
+                      onChange={(e) => setMember2({ ...member2, name: e.target.value })}
                       placeholder="Full Name"
                       required
                       className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                     />
                     <input
                       type="tel"
-                      value={member1.phone}
-                      onChange={(e) => setMember1({ ...member1, phone: e.target.value })}
+                      value={member2.phone}
+                      onChange={(e) => setMember2({ ...member2, phone: e.target.value })}
                       placeholder="Phone Number"
                       required
                       className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                     />
                   </div>
                 </div>
-
-                {/* Person 2 (only if members >= 2) */}
-                {numberOfMembers >= 2 && (
-                  <div className="border border-gray-200 rounded-lg p-4">
-                    <h4 className="font-medium text-gray-900 mb-3">Person 2</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <input
-                        type="text"
-                        value={member2.name}
-                        onChange={(e) => setMember2({ ...member2, name: e.target.value })}
-                        placeholder="Full Name"
-                        required
-                        className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                      />
-                      <input
-                        type="tel"
-                        value={member2.phone}
-                        onChange={(e) => setMember2({ ...member2, phone: e.target.value })}
-                        placeholder="Phone Number"
-                        required
-                        className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
+              )}
             </div>
 
             {/* Booking Summary */}
@@ -262,23 +263,6 @@ Phone: ${member2.phone}` : ''}`;
                 <span className="font-medium">Advance Payment Required:</span>
                 <span className="font-bold text-xl">₹{advanceTotal}</span>
               </div>
-              <p className="text-sm text-gray-600 mt-2">
-                You need to pay ₹{pkg.advance_payment} per person as advance
-              </p>
-            </div>
-
-            {/* WhatsApp Info */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div className="flex items-start space-x-3">
-                <MessageCircle className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
-                <div className="text-sm text-blue-800">
-                  <p className="font-medium mb-1">WhatsApp Booking Process</p>
-                  <p>
-                    After submitting this form, you'll be redirected to WhatsApp with a pre-filled message
-                    containing your booking details. Please send this message to complete your booking.
-                  </p>
-                </div>
-              </div>
             </div>
 
             <button
@@ -286,7 +270,7 @@ Phone: ${member2.phone}` : ''}`;
               disabled={submitting || !selectedDate}
               className="w-full bg-emerald-600 text-white py-3 rounded-lg hover:bg-emerald-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {submitting ? 'Processing...' : 'Proceed to WhatsApp Booking'}
+              {submitting ? 'Processing...' : 'Confirm Booking'}
             </button>
           </form>
         </div>
