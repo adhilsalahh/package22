@@ -3,9 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { Calendar, MapPin, Users, IndianRupee, MousePointer2, Phone, Mail, MessageCircle, Instagram, Send, Mountain, ArrowRight } from 'lucide-react';
 import { Package } from '../types';
 import { packageService } from '../services/packageService';
-
+import { useAuth } from '../contexts/AuthContext'; 
 export const HomePage = () => {
   const navigate = useNavigate();
+   const { user } = useAuth();
   const [packages, setPackages] = useState<Package[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -65,6 +66,19 @@ const galleryImages = [
 
   return (
     <div className="min-h-screen bg-white">
+       {/* ✅ SIGNUP WARNING BANNER */}
+      {!user && (
+        <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 text-center">
+          <p className="font-medium text-lg">
+            ⚠️ Bookings can only be made after signing up. Please <button
+              onClick={() => navigate('/login')}
+              className="underline text-emerald-600 font-semibold ml-1"
+            >
+              Sign Up / Log In
+            </button>
+          </p>
+        </div>
+      )}
       <section className="relative min-h-[90vh] flex items-center overflow-hidden bg-gradient-to-br from-emerald-50 via-white to-teal-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
           <div className="grid md:grid-cols-2 gap-12 items-center">
@@ -212,7 +226,7 @@ const galleryImages = [
               What Makes Us Special
             </h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Why Choose TrekBooking
+              Why Choose  Va Oru Trippadikkam
             </p>
           </div>
 
@@ -429,8 +443,19 @@ const galleryImages = [
           <div className="grid md:grid-cols-4 gap-8 mb-8">
             <div>
               <div className="flex items-center mb-4">
-                <Mountain className="h-8 w-8 text-emerald-500" />
-                <span className="ml-2 text-2xl font-bold">TrekBooking</span>
+                <div
+            className="flex items-center cursor-pointer group"
+            onClick={() => navigate('/')}
+          >
+            <img
+              src="/Va oru trippadikkam.jpg"  // ✅ correct way for public folder
+              alt="Va Oru Trippadikkam Logo"
+              className="h-10 w-auto rounded-md shadow-sm transition-transform duration-300 group-hover:scale-110"
+            />
+            <span className="ml-3 text-lg font-bold text-white group-hover:text-emerald-600 transition-colors">
+              Va Oru Trippadikkam
+            </span>
+          </div>
               </div>
               <p className="text-gray-400 mb-4">
                 Your trusted partner for unforgettable trekking adventures across India.
