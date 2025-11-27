@@ -93,109 +93,122 @@ export const MyBookingsPage = ({ onNavigate }: MyBookingsPageProps) => {
           </div>
         ) : (
           <div className="space-y-6">
-            {bookings.map((booking) => (
-              <div key={booking.id} className="bg-white rounded-xl shadow-md overflow-hidden">
-                <div className="md:flex">
-                  <div className="md:w-1/3">
-                    <img
-                      src={booking.package?.image_url || 'https://images.pexels.com/photos/2437291/pexels-photo-2437291.jpeg'}
-                      alt={booking.package?.title}
-                      className="h-full w-full object-cover"
-                    />
-                  </div>
-                  <div className="p-6 md:w-2/3">
-                    <div className="flex items-start justify-between mb-4">
-                      <div>
-                        <h3 className="text-2xl font-bold text-gray-900 mb-2">
-                          {booking.package?.title}
-                        </h3>
-                        <div className="flex items-center text-gray-600 mb-2">
-                          <MapPin className="h-4 w-4 mr-1" />
-                          <span className="text-sm">{booking.package?.destination}</span>
-                        </div>
-                      </div>
-                      {getStatusBadge(booking.status)}
+            {bookings.map((booking) => {
+              const bookingDate = new Date(String(booking.booking_date));
+              const totalPrice = Number(booking.total_price);
+              const advancePaid = Number(booking.advance_paid);
+              const remaining = totalPrice - advancePaid;
+
+              return (
+                <div key={booking.id} className="bg-white rounded-xl shadow-md overflow-hidden">
+                  <div className="md:flex">
+                    <div className="md:w-1/3">
+                      <img
+                        src={booking.package?.image_url || 'https://images.pexels.com/photos/2437291/pexels-photo-2437291.jpeg'}
+                        alt={booking.package?.title}
+                        className="h-full w-full object-cover"
+                      />
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                      <div className="flex items-center text-gray-700">
-                        <Calendar className="h-5 w-5 mr-2 text-emerald-600" />
+                    <div className="p-6 md:w-2/3">
+                      <div className="flex items-start justify-between mb-4">
                         <div>
-                          <p className="text-xs text-gray-500">Booking Date</p>
-                          <p className="font-medium">
-                            {new Date(booking.booking_date).toLocaleDateString('en-IN', {
-                              day: 'numeric',
-                              month: 'short',
-                              year: 'numeric',
-                            })}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center text-gray-700">
-                        <Users className="h-5 w-5 mr-2 text-emerald-600" />
-                        <div>
-                          <p className="text-xs text-gray-500">Members</p>
-                          <p className="font-medium">{booking.number_of_members} people</p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center text-gray-700">
-                        <Clock className="h-5 w-5 mr-2 text-emerald-600" />
-                        <div>
-                          <p className="text-xs text-gray-500">Group Name</p>
-                          <p className="font-medium">{booking.travel_group_name}</p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center text-gray-700">
-                        <IndianRupee className="h-5 w-5 mr-2 text-emerald-600" />
-                        <div>
-                          <p className="text-xs text-gray-500">Total Price</p>
-                          <p className="font-medium">₹{booking.total_price}</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="border-t pt-4">
-                      <div className="flex flex-wrap gap-4 text-sm">
-                        <div>
-                          <span className="text-gray-600">Advance Paid:</span>
-                          <span className="font-medium text-gray-900 ml-1">₹{booking.advance_paid}</span>
-                        </div>
-                        <div>
-                          <span className="text-gray-600">Payment Status:</span>
-                          <span className={`font-medium ml-1 ${
-                            booking.payment_status === 'fully_paid' ? 'text-green-600' : 'text-yellow-600'
-                          }`}>
-                            {booking.payment_status === 'fully_paid' ? 'Fully Paid' : 'Advance Paid'}
-                          </span>
-                        </div>
-                        <div>
-                          <span className="text-gray-600">Booked on:</span>
-                          <span className="font-medium text-gray-900 ml-1">
-                            {new Date(booking.created_at).toLocaleDateString('en-IN')}
-                          </span>
-                        </div>
-                      </div>
-
-                      {booking.members && booking.members.length > 0 && (
-                        <div className="mt-4">
-                          <p className="text-sm font-medium text-gray-700 mb-2">Participants:</p>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                            {booking.members.map((member, index) => (
-                              <div key={member.id} className="text-sm text-gray-600 bg-gray-50 p-2 rounded">
-                                {index + 1}. {member.member_name} - {member.member_phone}
-                              </div>
-                            ))}
+                          <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                            {booking.package?.title}
+                          </h3>
+                          <div className="flex items-center text-gray-600 mb-2">
+                            <MapPin className="h-4 w-4 mr-1" />
+                            <span className="text-sm">{booking.package?.destination}</span>
                           </div>
                         </div>
-                      )}
+                        {getStatusBadge(booking.status)}
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div className="flex items-center text-gray-700">
+                          <Calendar className="h-5 w-5 mr-2 text-emerald-600" />
+                          <div>
+                            <p className="text-xs text-gray-500">Travel Date</p>
+                            <p className="font-medium">
+                              {bookingDate.toLocaleDateString('en-IN', {
+                                day: 'numeric',
+                                month: 'short',
+                                year: 'numeric',
+                              })}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center text-gray-700">
+                          <Users className="h-5 w-5 mr-2 text-emerald-600" />
+                          <div>
+                            <p className="text-xs text-gray-500">Members</p>
+                            <p className="font-medium">{booking.number_of_members} people</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center text-gray-700">
+                          <Clock className="h-5 w-5 mr-2 text-emerald-600" />
+                          <div>
+                            <p className="text-xs text-gray-500">Group Name</p>
+                            <p className="font-medium">{booking.travel_group_name}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center text-gray-700">
+                          <IndianRupee className="h-5 w-5 mr-2 text-emerald-600" />
+                          <div>
+                            <p className="text-xs text-gray-500">Total Price</p>
+                            <p className="font-medium">
+                              ₹{totalPrice.toLocaleString('en-IN')}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="border-t pt-4">
+                        <div className="flex flex-wrap gap-4 text-sm">
+                          <div>
+                            <span className="text-gray-600">Advance Paid:</span>
+                            <span className="font-medium text-gray-900 ml-1">
+                              ₹{advancePaid.toLocaleString('en-IN')}
+                            </span>
+                          </div>
+
+                          <div>
+                            <span className="text-gray-600">Remaining:</span>
+                            <span className="font-medium text-red-600 ml-1">
+                              ₹{remaining.toLocaleString('en-IN')}
+                            </span>
+                          </div>
+
+                          <div>
+                            <span className="text-gray-600">Booked on:</span>
+                            <span className="font-medium text-gray-900 ml-1">
+                              {new Date(booking.created_at).toLocaleDateString('en-IN')}
+                            </span>
+                          </div>
+                        </div>
+
+                        {booking.members && booking.members.length > 0 && (
+                          <div className="mt-4">
+                            <p className="text-sm font-medium text-gray-700 mb-2">Participants:</p>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                              {booking.members.map((member, index) => (
+                                <div key={member.id} className="text-sm text-gray-600 bg-gray-50 p-2 rounded">
+                                  {index + 1}. {member.member_name} - {member.member_phone}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

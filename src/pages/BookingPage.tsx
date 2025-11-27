@@ -151,7 +151,7 @@ const BookingPage = () => {
         </button>
 
         <div className="bg-white rounded-xl shadow-md p-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Book Your Adventure</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Book Your Adventure </h1>
           <h2 className="text-xl text-gray-600 mb-8">{pkg.title}</h2>
 
           {error && (

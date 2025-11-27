@@ -32,8 +32,8 @@ export function PaymentReport({ showToast }: PaymentReportProps) {
   };
 
   const calculateStats = () => {
-    const totalRevenue = bookings.reduce((sum, booking) => sum + booking.total_amount, 0);
-    const totalAdvance = bookings.reduce((sum, booking) => sum + booking.advance_amount, 0);
+    const totalRevenue = bookings.reduce((sum, booking) => sum + (booking.total_amount ?? 0), 0);
+    const totalAdvance = bookings.reduce((sum, booking) => sum + (booking.advance_amount ?? 0), 0);
     const totalPending = totalRevenue - totalAdvance;
     const confirmedBookings = bookings.filter((b) => b.status === 'confirmed').length;
     const pendingBookings = bookings.filter((b) => b.status === 'pending').length;
@@ -64,6 +64,7 @@ export function PaymentReport({ showToast }: PaymentReportProps) {
         <h2 className="text-2xl font-bold text-gray-800">Payment Reports & Analytics</h2>
       </div>
 
+      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <div className="bg-white rounded-xl shadow-lg p-6">
           <div className="flex items-center justify-between mb-4">
@@ -112,7 +113,8 @@ export function PaymentReport({ showToast }: PaymentReportProps) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Booking Status & Payment Summary */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         <div className="bg-white rounded-xl shadow-lg p-6">
           <h3 className="text-lg font-semibold text-gray-800 mb-4">Booking Status</h3>
           <div className="space-y-3">
@@ -152,6 +154,7 @@ export function PaymentReport({ showToast }: PaymentReportProps) {
         </div>
       </div>
 
+      {/* Recent Transactions Table */}
       <div className="bg-white rounded-xl shadow-lg overflow-hidden mt-6">
         <div className="p-6">
           <h3 className="text-lg font-semibold text-gray-800 mb-4">Recent Transactions</h3>
@@ -178,43 +181,49 @@ export function PaymentReport({ showToast }: PaymentReportProps) {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {bookings.slice(0, 10).map((booking) => (
-                <tr key={booking.id}>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">
-                      {new Date(booking.booking_date).toLocaleDateString('en-IN')}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">
-                      ₹{booking.total_amount.toLocaleString()}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-green-600">
-                      ₹{booking.advance_amount.toLocaleString()}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-orange-600">
-                      ₹{(booking.total_amount - booking.advance_amount).toLocaleString()}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span
-                      className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        booking.status === 'confirmed'
-                          ? 'bg-green-100 text-green-800'
-                          : booking.status === 'cancelled'
-                          ? 'bg-red-100 text-red-800'
-                          : 'bg-yellow-100 text-yellow-800'
-                      }`}
-                    >
-                      {booking.status}
-                    </span>
-                  </td>
-                </tr>
-              ))}
+              {bookings.slice(0, 10).map((booking) => {
+                const totalAmount = booking.total_amount ?? 0;
+                const advanceAmount = booking.advance_amount ?? 0;
+                const balance = totalAmount - advanceAmount;
+
+                return (
+                  <tr key={booking.id}>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">
+                        {booking.booking_date
+                          ? new Date(booking.booking_date).toLocaleDateString('en-IN')
+                          : 'N/A'}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">
+                        ₹{totalAmount.toLocaleString()}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-green-600">
+                        ₹{advanceAmount.toLocaleString()}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-orange-600">₹{balance.toLocaleString()}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span
+                        className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                          booking.status === 'confirmed'
+                            ? 'bg-green-100 text-green-800'
+                            : booking.status === 'cancelled'
+                            ? 'bg-red-100 text-red-800'
+                            : 'bg-yellow-100 text-yellow-800'
+                        }`}
+                      >
+                        {booking.status ?? 'pending'}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

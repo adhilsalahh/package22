@@ -149,71 +149,72 @@ export function BookingManagement({ showToast }: BookingManagementProps) {
       </div>
 
 
-      {/* TABLE */}
-      <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3">Booking ID</th>
-                <th className="px-6 py-3">User</th>
-                <th className="px-6 py-3">Package</th>
-                <th className="px-6 py-3">Travel Date</th>
-                <th className="px-6 py-3">Amount</th>
-                <th className="px-6 py-3">Status</th>
-                <th className="px-6 py-3">Actions</th>
-              </tr>
-            </thead>
+  <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+  <div className="overflow-x-auto">
+    <table className="min-w-full divide-y divide-gray-200">
+      <thead className="bg-gray-50">
+        <tr>
+          <th className="px-6 py-3">Booking ID</th>
+          <th className="px-6 py-3">User</th>
+          <th className="px-6 py-3">Package</th>
+          <th className="px-6 py-3">Travel Date</th>
+          <th className="px-6 py-3">Members</th>
+          <th className="px-6 py-3">Advance Paid</th>  {/* Changed */}
+          <th className="px-6 py-3">Total Amount</th>
+          <th className="px-6 py-3">Status</th>
+          <th className="px-6 py-3">Actions</th>
+        </tr>
+      </thead>
 
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredBookings.map((booking) => (
-                <tr key={booking.id}>
-                  <td className="px-6 py-4">{booking.id.slice(0, 8)}...</td>
+      <tbody className="bg-white divide-y divide-gray-200">
+        {filteredBookings.map((booking) => {
+          const members = booking.number_of_members ?? 1;
+          const advancePaid = booking.advance_paid ? Number(booking.advance_paid) : 0;
+          const totalAmount = booking.total_price ? Number(booking.total_price) : 0;
 
-                  <td className="px-6 py-4">
-                    {booking.profile?.username || "Unknown"}
-                    <div className="text-xs text-gray-500">
-                      {booking.profile?.email}
-                    </div>
-                  </td>
+          return (
+            <tr key={booking.id}>
+              <td className="px-6 py-4">{booking.id.slice(0, 8)}...</td>
 
-                  <td className="px-6 py-4">{booking.package?.title || "N/A"}</td>
+              <td className="px-6 py-4">
+                {booking.profile?.username || "Unknown"}
+                <div className="text-xs text-gray-500">{booking.profile?.email}</div>
+              </td>
 
-                  <td className="px-6 py-4">
-                    {new Date(booking.travel_date).toLocaleDateString()}
-                  </td>
+              <td className="px-6 py-4">{booking.package?.title || "N/A"}</td>
 
-                  <td className="px-6 py-4">
-                    ₹{(booking.total_amount ?? 0).toLocaleString()}
-                  </td>
+              <td className="px-6 py-4">{new Date(booking.booking_date).toLocaleDateString()}</td>
 
-                  <td className="px-6 py-4">
-                    <span className={`px-3 py-1 rounded-full text-xs ${
-                      booking.status === "confirmed"
-                        ? "bg-green-100 text-green-800"
-                        : booking.status === "cancelled"
-                        ? "bg-red-100 text-red-800"
-                        : "bg-yellow-100 text-yellow-800"
-                    }`}>
-                      {booking.status}
-                    </span>
-                  </td>
+              <td className="px-6 py-4">{members}</td>
 
-                  <td className="px-6 py-4">
-                    <button
-                      onClick={() => setSelectedBooking(booking)}
-                      className="text-blue-600"
-                    >
-                      <Eye className="h-5 w-5" />
-                    </button>
-                  </td>
+              <td className="px-6 py-4">₹{advancePaid.toLocaleString()}</td>  {/* Updated */}
 
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+              <td className="px-6 py-4">₹{totalAmount.toLocaleString()}</td>
+
+              <td className="px-6 py-4">
+                <span className={`px-3 py-1 rounded-full text-xs ${
+                  booking.status === "confirmed"
+                    ? "bg-green-100 text-green-800"
+                    : booking.status === "cancelled"
+                    ? "bg-red-100 text-red-800"
+                    : "bg-yellow-100 text-yellow-800"
+                }`}>
+                  {booking.status}
+                </span>
+              </td>
+
+              <td className="px-6 py-4">
+                <button onClick={() => setSelectedBooking(booking)} className="text-blue-600">
+                  <Eye className="h-5 w-5" />
+                </button>
+              </td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+  </div>
+</div>
 
       {/* DETAILS MODAL */}
       {selectedBooking && (

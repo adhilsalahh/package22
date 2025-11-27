@@ -2,21 +2,30 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { Calendar, IndianRupee, Package } from 'lucide-react';
+import { Calendar, IndianRupee, Users, CheckCircle, XCircle, Loader } from 'lucide-react';
+
+interface BookingMember {
+  id: string;
+  member_name: string;
+  member_phone: string;
+}
 
 interface BookingWithPackage {
   id: string;
-  travel_date: string;
-  total_amount: number;
-  advance_paid: boolean;
-  advance_amount: number;
-  remaining_amount: number;
-  remaining_paid: boolean;
-  full_payment_done: boolean;
+  booking_date: string;
+  total_price: string;
+  advance_paid: number; 
+  remaining_paid: boolean; 
   status: string;
   created_at: string;
+  number_of_members: number;
+  travel_group_name: string;
+  members: BookingMember[];
   package: {
+    id: string;
     title: string;
+    price_per_head: number;
+    image_url?: string;
   } | null;
 }
 
@@ -26,9 +35,7 @@ export default function UserBookings() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (user) {
-      loadBookings();
-    }
+    if (user) loadBookings();
   }, [user]);
 
   async function loadBookings() {
@@ -37,12 +44,14 @@ export default function UserBookings() {
         .from('bookings')
         .select(`
           *,
-          package:packages(title)
+          package:packages(id, title, price_per_head, image_url),
+          members:booking_members(id, member_name, member_phone)
         `)
         .eq('user_id', user?.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
+
       setBookings(data || []);
     } catch (error) {
       console.error('Error loading bookings:', error);
@@ -50,6 +59,32 @@ export default function UserBookings() {
       setLoading(false);
     }
   }
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'confirmed':
+        return (
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+            <CheckCircle className="h-4 w-4 mr-1" />
+            Confirmed
+          </span>
+        );
+      case 'cancelled':
+        return (
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+            <XCircle className="h-4 w-4 mr-1" />
+            Cancelled
+          </span>
+        );
+      default:
+        return (
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
+            <Loader className="h-4 w-4 mr-1 animate-spin" />
+            Pending
+          </span>
+        );
+    }
+  };
 
   if (loading) {
     return (
@@ -60,12 +95,14 @@ export default function UserBookings() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
-      <div className="max-w-5xl mx-auto px-4">
-        <h1 className="text-4xl font-bold text-gray-800 mb-8">My Bookings</h1>
+    <div className="min-h-screen bg-gray-50 py-12 px-2 sm:px-6 lg:px-8">
+      <div className="max-w-5xl mx-auto">
+        <h1 className="text-3xl sm:text-4xl font-bold text-gray-800 mb-8 text-center sm:text-left">
+          My Bookings
+        </h1>
 
         {bookings.length === 0 ? (
-          <div className="bg-white rounded-lg shadow-md p-8 text-center">
+          <div className="bg-white rounded-lg shadow-md p-6 sm:p-8 text-center">
             <p className="text-gray-600 text-lg mb-4">You haven't made any bookings yet.</p>
             <Link
               to="/packages"
@@ -75,81 +112,91 @@ export default function UserBookings() {
             </Link>
           </div>
         ) : (
-          <div className="space-y-4">
-            {bookings.map((booking) => (
-              <div key={booking.id} className="bg-white rounded-lg shadow-md p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-800 mb-2">
-                      {booking.package?.title || 'Package'}
-                    </h3>
-                    <div className="flex items-center gap-4 text-sm text-gray-600">
-                      <div className="flex items-center gap-1">
-                        <Calendar className="w-4 h-4" />
-                        <span>Travel: {new Date(booking.travel_date).toLocaleDateString()}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <IndianRupee className="w-4 h-4" />
-                        <span>Total: ₹{booking.total_amount}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <span
-                    className={`px-3 py-1 rounded-full text-sm font-medium ${
-                      booking.status === 'confirmed'
-                        ? 'bg-green-100 text-green-800'
-                        : booking.status === 'cancelled'
-                        ? 'bg-red-100 text-red-800'
-                        : 'bg-yellow-100 text-yellow-800'
-                    }`}
-                  >
-                    {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
-                  </span>
-                </div>
+          <div className="space-y-6">
+            {bookings.map((booking) => {
+              const totalPrice = Number(booking.total_price);
+              const advancePaid = booking.advance_paid;
+              const remainingAmount = totalPrice - advancePaid;
 
-                <div className="border-t pt-4">
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <p className="text-sm text-gray-600">
-                          Advance Payment: {booking.advance_paid ? '✓ Paid ₹' + booking.advance_amount : '✗ Not Paid ₹' + booking.advance_amount}
-                        </p>
-                        {booking.advance_paid && (
-                          <p className="text-sm text-gray-600">
-                            Remaining Balance: {booking.remaining_paid ? '✓ Paid' : '✗ Pending'} ₹{booking.remaining_amount}
-                          </p>
-                        )}
+              return (
+                <div
+                  key={booking.id}
+                  className="bg-white rounded-lg shadow-md overflow-hidden sm:flex sm:items-center"
+                >
+                  {/* Optional package image */}
+                  {booking.package?.image_url && (
+                    <img
+                      src={booking.package.image_url}
+                      alt={booking.package.title}
+                      className="w-full h-48 object-cover sm:w-48 sm:h-48"
+                    />
+                  )}
+
+                  <div className="p-4 sm:p-6 flex-1">
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-4 gap-2 sm:gap-0">
+                      <div className="flex-1">
+                        <h3 className="text-xl font-bold text-gray-800 mb-2 truncate">
+                          {booking.package?.title || 'Package'}
+                        </h3>
+                        <div className="flex flex-wrap gap-4 text-sm text-gray-600">
+                          <div className="flex items-center gap-1">
+                            <Calendar className="w-4 h-4" />
+                            <span>Travel: {new Date(booking.booking_date).toLocaleDateString()}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <IndianRupee className="w-4 h-4" />
+                            <span>Total: ₹{totalPrice.toLocaleString('en-IN')}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Users className="w-4 h-4" />
+                            <span>Members: {booking.number_of_members}</span>
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex gap-2">
-                        {!booking.advance_paid && booking.status === 'pending' && (
-                          <Link
-                            to={`/payment/${booking.id}`}
-                            className="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition text-sm font-medium"
-                          >
-                            Pay Advance
-                          </Link>
-                        )}
-                        {booking.advance_paid && !booking.remaining_paid && booking.status !== 'cancelled' && (
-                          <Link
-                            to={`/remaining-payment/${booking.id}`}
-                            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm font-medium"
-                          >
-                            Pay Remaining
-                          </Link>
-                        )}
-                      </div>
+
+                      <div className="mt-2 sm:mt-0">{getStatusBadge(booking.status)}</div>
                     </div>
-                    {booking.full_payment_done && (
-                      <div className="bg-emerald-50 border border-emerald-200 rounded p-3">
-                        <p className="text-sm font-medium text-emerald-800">
-                          ✓ Full payment completed. Your booking is confirmed!
-                        </p>
-                      </div>
-                    )}
+
+                    <div className="border-t pt-4 space-y-3">
+                      <p className="text-sm text-gray-600">
+                        Advance Payment:{' '}
+                        {advancePaid > 0 ? `✓ Paid ₹${advancePaid.toLocaleString('en-IN')}` : `✗ Pending ₹0`}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        Remaining Balance:{' '}
+                        {booking.remaining_paid
+                          ? `✓ Paid ₹${remainingAmount.toLocaleString('en-IN')}`
+                          : `✗ Pending ₹${remainingAmount.toLocaleString('en-IN')}`}
+                      </p>
+
+                      {/* Only Pay Remaining Button */}
+                      {advancePaid > 0 && !booking.remaining_paid && booking.status === 'pending' && (
+                        <Link
+                          to={`/remaining-payment/${booking.id}`}
+                          className="inline-block mt-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm font-medium"
+                        >
+                          Pay Remaining
+                        </Link>
+                      )}
+
+                      {/* Participants */}
+                      {booking.members.length > 0 && (
+                        <div className="mt-4">
+                          <p className="text-sm font-medium text-gray-700 mb-1">Participants (Contact for admin):</p>
+                          <ul className="list-disc pl-5 text-gray-600 text-sm space-y-1">
+                            {booking.members.map((m) => (
+                              <li key={m.id}>
+                                {m.member_name} - {m.member_phone}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

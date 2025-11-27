@@ -78,7 +78,7 @@ const BookingForm: React.FC<BookingFormProps> = ({ package: pkg, onClose }) => {
       <div className="bg-white rounded-2xl max-w-3xl w-full my-8">
         <div className="sticky top-0 bg-gradient-to-r from-emerald-600 to-teal-600 text-white p-6 rounded-t-2xl flex justify-between items-center">
           <div>
-            <h2 className="text-2xl font-bold">Book Your Adventure</h2>
+            <h2 className="text-2xl font-bold">Book Your Advent</h2>
             <p className="text-emerald-100">{pkg.title}</p>
           </div>
           <button

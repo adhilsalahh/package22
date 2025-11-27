@@ -78,7 +78,7 @@ const BookingList: React.FC<BookingListProps> = ({ bookings, packages }) => {
                   <div className="flex items-center text-gray-700">
                     <Calendar className="h-5 w-5 mr-2 text-emerald-600" />
                     <div>
-                      <p className="font-semibold">Booking Date</p>
+                      <p className="font-semibold">Booking text</p>
                       <p className="text-sm">
                         {new Date(booking.booking_date).toLocaleDateString('en-IN', {
                           weekday: 'short',
