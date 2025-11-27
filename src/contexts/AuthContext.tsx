@@ -1,7 +1,7 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { User } from '@supabase/supabase-js';
-import { supabase } from '../lib/supabase';
-import { Profile } from '../types';
+import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { User } from "@supabase/supabase-js";
+import { supabase } from "../lib/supabase";
+import { Profile } from "../types";
 
 interface AuthContextType {
   user: User | null;
@@ -20,17 +20,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Fetch profile
+  // Load Profile
   const fetchProfile = async (userId: string) => {
     const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
+      .from("profiles")
+      .select("*")
+      .eq("id", userId)
       .maybeSingle();
 
-    if (!error && data) {
-      setProfile(data);
-    }
+    if (!error && data) setProfile(data);
   };
 
   // Load Session
@@ -41,28 +39,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setLoading(false);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      (async () => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
         setUser(session?.user ?? null);
-        if (session?.user) {
-          await fetchProfile(session.user.id);
-        } else {
-          setProfile(null);
-        }
+        if (session?.user) fetchProfile(session.user.id);
+        else setProfile(null);
         setLoading(false);
-      })();
-    });
+      }
+    );
 
     return () => subscription.unsubscribe();
   }, []);
 
-  // Login
+  // LOGIN
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
   };
 
-  // SIGN UP (WORKING FIX)
+  // SIGNUP (RLS SAFE — Insert Allowed)
   const signUp = async (email: string, password: string, fullName: string, phone: string) => {
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -74,27 +69,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     if (error) throw error;
 
-    const user = data.user;
-    if (user) {
-      await supabase.from('profiles').insert({
-        id: user.id,
-        full_name: fullName,
-        phone: phone,
-        is_admin: false,
-      });
-    }
+    const newUser = data.user;
+    if (!newUser) return;
+
+    // This will work even if RLS enabled (because user owns row)
+    await supabase.from("profiles").upsert({
+      id: newUser.id,
+      full_name: fullName,
+      phone: phone,
+      is_admin: false,
+    });
   };
 
-  // Logout
+  // LOGOUT — FIXED (No AuthSessionMissingError)
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
+    const { error } = await supabase.auth.signOut({ scope: "local" });
+    if (error) console.warn("Logout warning:", error.message);
+    setUser(null);
+    setProfile(null);
   };
 
   const isAdmin = profile?.is_admin ?? false;
 
   return (
-    <AuthContext.Provider 
+    <AuthContext.Provider
       value={{ user, profile, loading, signIn, signUp, signOut, isAdmin }}
     >
       {children}
@@ -103,7 +101,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 };
 
 export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) throw new Error('useAuth must be used within AuthProvider');
-  return context;
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
+  return ctx;
 };
