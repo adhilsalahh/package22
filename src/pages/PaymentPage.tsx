@@ -1,198 +1,180 @@
-import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
-import QRCode from 'qrcode';
-import { CheckCircle } from 'lucide-react';
-
-interface Booking {
-  id: string;
-  booking_date: string;
-  total_price: number;
-  advance_amount: number;
-  advance_paid: boolean;
-  package: { title: string };
-  user: { full_name: string };
-}
-
-interface PaymentSetting {
-  setting_key: string;
-  setting_value: string;
-}
+import { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { supabase } from "../lib/supabase";
+import QRCode from "qrcode";
+import { CheckCircle } from "lucide-react";
 
 export default function AdvancePaymentPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  const [booking, setBooking] = useState<Booking | null>(null);
-  const [paymentSettings, setPaymentSettings] = useState<PaymentSetting[]>([]);
-  const [qrCodeUrl, setQrCodeUrl] = useState('');
-  const [utr, setUtr] = useState('');
-  const [receiptUrl, setReceiptUrl] = useState('');
+  const [booking, setBooking] = useState<any>(null);
+  const [qrCodeUrl, setQrCodeUrl] = useState("");
+  const [utr, setUtr] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+  const [receiptUrl, setReceiptUrl] = useState("");
+  const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Load booking and payment settings
+  // Load Booking + User Info
   useEffect(() => {
     if (!id) return;
-
-    async function loadBooking() {
+    const loadBooking = async () => {
       const { data, error } = await supabase
-        .from('bookings')
+        .from("bookings")
         .select(`
           *,
-          package:packages(title),
-          user:profiles(full_name)
+          profiles:user_id ( full_name, phone, email ),
+          packages(title)
         `)
-        .eq('id', id)
+        .eq("id", id)
         .maybeSingle();
 
-      if (error) {
-        console.error('Booking load error:', error);
-        return;
-      }
-      setBooking(data);
-    }
-
-    async function loadPaymentSettings() {
-      const { data, error } = await supabase.from('payment_settings').select('*');
-      if (error) {
-        console.error('Payment settings load error:', error);
-        return;
-      }
-      setPaymentSettings(data || []);
-    }
-
+      if (error) console.error("Error loading booking:", error);
+      else setBooking(data);
+    };
     loadBooking();
-    loadPaymentSettings();
   }, [id]);
 
   // Generate QR Code
   useEffect(() => {
-    if (!booking || booking.advance_paid) return;
+    if (!booking) return;
+    const upi = "8129464465@okaxis";
+    const name = "Va Oru Trippadikkam";
+    const amount = booking.advance_amount || 0;
+    const upiUrl = `upi://pay?pa=${upi}&pn=${name}&am=${amount}&cu=INR&tn=Advance`;
+    QRCode.toDataURL(upiUrl).then(setQrCodeUrl);
+  }, [booking]);
 
-    const advanceAmount = booking.advance_amount || 0;
-    const upiId = paymentSettings.find((s) => s.setting_key === 'upi_id')?.setting_value || '8129464465@okaxis';
-    const payeeName = paymentSettings.find((s) => s.setting_key === 'payee_name')?.setting_value || 'Va Oru Trippadikkam';
+  // Handle File Upload
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) setFile(e.target.files[0]);
+  };
 
-    const upiString = `upi://pay?pa=${upiId}&pn=${payeeName}&am=${advanceAmount}&cu=INR&tn=Advance Payment`;
+  const handleUpload = async () => {
+    if (!file) return;
+    setUploading(true);
+    const filename = `receipt_${Date.now()}.jpg`;
+    try {
+      const { error } = await supabase.storage
+        .from("receipts")
+        .upload(filename, file, { upsert: true });
+      if (error) throw error;
 
-    QRCode.toDataURL(upiString)
-      .then(setQrCodeUrl)
-      .catch((err) => console.error('QR generation error:', err));
-  }, [booking, paymentSettings]);
+      const { data } = supabase.storage.from("receipts").getPublicUrl(filename);
+      setReceiptUrl(data.publicUrl);
+      alert("Receipt uploaded successfully!");
+    } catch (err: any) {
+      console.error(err);
+      alert("Upload failed: " + err.message);
+    } finally {
+      setUploading(false);
+    }
+  };
 
-  // Submit advance payment
+  // Submit Payment
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!booking) return;
-    setLoading(true);
+    if (!utr || !receiptUrl) {
+      alert("Enter UTR and upload receipt first!");
+      return;
+    }
 
+    setLoading(true);
     try {
       const { error } = await supabase
-        .from('bookings')
+        .from("bookings")
         .update({
           advance_paid: true,
           advance_utr: utr,
           advance_receipt_url: receiptUrl,
+          payment_status: "paid",
+          status: "confirmed",
         })
-        .eq('id', booking.id);
-
+        .eq("id", id);
       if (error) throw error;
 
-      alert('Advance payment submitted successfully!');
-      navigate('/bookings');
-    } catch (err) {
-      console.error('Payment submission failed:', err);
-      alert('Payment submission failed!');
+      alert("Advance payment updated!");
+      navigate("/bookings");
+    } catch (err: any) {
+      console.error("Submit error:", err);
+      alert("Failed to submit payment: " + err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  // Loading state
-  if (!booking)
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-gray-600 text-lg">Loading booking...</p>
-      </div>
-    );
+  if (!booking) return <div className="text-center mt-10">Loading...</div>;
 
-  // Already paid screen
+  // Already paid UI
   if (booking.advance_paid)
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="bg-white p-8 rounded-lg shadow-md text-center">
-          <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold mb-2">Advance Paid</h1>
-          <p className="mb-4">You have already paid the advance for this booking.</p>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="bg-white p-6 rounded shadow text-center">
+          <CheckCircle className="text-green-600 w-16 h-16 mx-auto" />
+          <h2 className="text-xl font-bold mt-3">Advance Already Paid</h2>
+          <p className="mt-2">Paid Amount: ₹{booking.advance_amount}</p>
           <button
-            onClick={() => navigate('/bookings')}
-            className="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700"
+            className="mt-4 bg-green-600 text-white px-4 py-2 rounded"
+            onClick={() => navigate("/bookings")}
           >
-            Back to Bookings
+            Go Back
           </button>
         </div>
       </div>
     );
 
-  // Render advance payment page
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
-      <div className="max-w-2xl mx-auto px-4">
-        <h1 className="text-3xl font-bold mb-6">Pay Advance</h1>
+    <div className="max-w-xl mx-auto mt-8 bg-white p-6 rounded shadow">
+      <h1 className="text-2xl font-bold mb-4">Pay Advance</h1>
 
-        {/* Booking Details */}
-        <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-          <p><strong>Customer:</strong> {booking.user.full_name}</p>
-          <p><strong>Package:</strong> {booking.package.title}</p>
-          <p><strong>Travel Date:</strong> {new Date(booking.booking_date).toLocaleDateString()}</p>
-          <p><strong>Advance Amount:</strong> ₹{(booking.advance_amount || 0).toLocaleString()}</p>
-        </div>
-
-        {/* QR Code */}
-        <div className="bg-white p-6 rounded-lg shadow-md text-center mb-6">
-          <h2 className="text-xl font-semibold mb-4">Scan QR to Pay via UPI</h2>
-          {qrCodeUrl ? (
-            <img src={qrCodeUrl} alt="UPI QR Code" className="mx-auto" />
-          ) : (
-            <p>Generating QR code...</p>
-          )}
-          <p className="mt-2 font-medium text-gray-700">Amount: ₹{(booking.advance_amount || 0).toLocaleString()}</p>
-        </div>
-
-        {/* Payment Form */}
-        <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow-md space-y-4">
-          <div>
-            <label className="block mb-1 font-medium">UTR / Transaction ID</label>
-            <input
-              type="text"
-              value={utr}
-              required
-              onChange={(e) => setUtr(e.target.value)}
-              className="w-full px-3 py-2 border rounded"
-            />
-          </div>
-
-          <div>
-            <label className="block mb-1 font-medium">Payment Receipt URL</label>
-            <input
-              type="url"
-              value={receiptUrl}
-              required
-              placeholder="https://example.com/receipt.jpg"
-              onChange={(e) => setReceiptUrl(e.target.value)}
-              className="w-full px-3 py-2 border rounded"
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700 disabled:opacity-50"
-          >
-            {loading ? 'Submitting...' : 'Submit Advance Payment'}
-          </button>
-        </form>
+      <div className="mb-4">
+        <p><strong>Name:</strong> {booking.profiles?.full_name || "Guest"}</p>
+        <p><strong>Phone:</strong> {booking.profiles?.phone || "N/A"}</p>
+        <p><strong>Package:</strong> {booking.packages?.title}</p>
+        <p><strong>Advance Amount:</strong> ₹{booking.advance_amount}</p>
       </div>
+
+      <div className="text-center mb-6">
+        <h2 className="text-lg font-semibold mb-2">Scan QR to Pay</h2>
+        {qrCodeUrl && <img src={qrCodeUrl} className="mx-auto w-48" />}
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block font-medium mb-1">UTR / Transaction ID</label>
+          <input
+            className="w-full border px-3 py-2 rounded"
+            value={utr}
+            required
+            onChange={(e) => setUtr(e.target.value)}
+          />
+        </div>
+
+        <div>
+          <label className="block font-medium mb-1">Upload Payment Receipt</label>
+          <input type="file" accept="image/*" onChange={handleFileChange} />
+          {file && (
+            <button
+              type="button"
+              onClick={handleUpload}
+              disabled={uploading}
+              className="mt-2 bg-blue-600 text-white px-3 py-1 rounded"
+            >
+              {uploading ? "Uploading..." : "Upload Receipt"}
+            </button>
+          )}
+          {receiptUrl && <img src={receiptUrl} className="mt-3 rounded border w-32" />}
+        </div>
+
+        <button
+          type="submit"
+          disabled={loading || uploading || !receiptUrl}
+          className="w-full bg-green-600 text-white py-2 rounded disabled:opacity-50"
+        >
+          {loading ? "Submitting..." : "Submit Payment"}
+        </button>
+      </form>
     </div>
   );
 }
