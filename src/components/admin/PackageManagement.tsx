@@ -350,6 +350,7 @@ export function PackageManagement({ showToast }: PackageManagementProps) {
                 <tr key={pkg.id}>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">{pkg.title}</div>
+                    
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-600">{pkg.destination}</div>

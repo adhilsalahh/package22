@@ -32,9 +32,18 @@ export function PaymentReport({ showToast }: PaymentReportProps) {
   };
 
   const calculateStats = () => {
-    const totalRevenue = bookings.reduce((sum, booking) => sum + (booking.total_amount ?? 0), 0);
-    const totalAdvance = bookings.reduce((sum, booking) => sum + (booking.advance_amount ?? 0), 0);
-    const totalPending = totalRevenue - totalAdvance;
+    let totalRevenue = 0;
+    let totalAdvance = 0;
+    let totalPending = 0;
+
+    bookings.forEach((b) => {
+      const totalAmount = Number(b.total_price ?? 0);
+      const advancePaid = Number(b.advance_paid ?? 0);
+      totalRevenue += totalAmount;
+      totalAdvance += advancePaid;
+      totalPending += totalAmount - advancePaid;
+    });
+
     const confirmedBookings = bookings.filter((b) => b.status === 'confirmed').length;
     const pendingBookings = bookings.filter((b) => b.status === 'pending').length;
 
@@ -96,7 +105,7 @@ export function PaymentReport({ showToast }: PaymentReportProps) {
               <Calendar className="h-6 w-6 text-yellow-600" />
             </div>
           </div>
-          <h3 className="text-sm font-medium text-gray-500 mb-1">Pending Amount</h3>
+          <h3 className="text-sm font-medium text-gray-500 mb-1">Remaining Payment</h3>
           <p className="text-2xl font-bold text-gray-900">
             ₹{stats.totalPending.toLocaleString()}
           </p>
@@ -182,9 +191,9 @@ export function PaymentReport({ showToast }: PaymentReportProps) {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {bookings.slice(0, 10).map((booking) => {
-                const totalAmount = booking.total_amount ?? 0;
-                const advanceAmount = booking.advance_amount ?? 0;
-                const balance = totalAmount - advanceAmount;
+                const totalAmount = Number(booking.total_price ?? 0);
+                const advancePaid = Number(booking.advance_paid ?? 0);
+                const balance = totalAmount - advancePaid;
 
                 return (
                   <tr key={booking.id}>
@@ -202,11 +211,13 @@ export function PaymentReport({ showToast }: PaymentReportProps) {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-green-600">
-                        ₹{advanceAmount.toLocaleString()}
+                        ₹{advancePaid.toLocaleString()}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-orange-600">₹{balance.toLocaleString()}</div>
+                      <div className="text-sm text-orange-600">
+                        ₹{balance.toLocaleString()}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span

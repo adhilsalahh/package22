@@ -27,6 +27,7 @@ interface BookingWithPackage {
     price_per_head: number;
     image_url?: string;
   } | null;
+  advance_amount?: number; // DB column, optional
 }
 
 export default function UserBookings() {
@@ -51,7 +52,6 @@ export default function UserBookings() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-
       setBookings(data || []);
     } catch (error) {
       console.error('Error loading bookings:', error);
@@ -94,12 +94,17 @@ export default function UserBookings() {
     );
   }
 
+ 
+
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-2 sm:px-6 lg:px-8">
       <div className="max-w-5xl mx-auto">
         <h1 className="text-3xl sm:text-4xl font-bold text-gray-800 mb-8 text-center sm:text-left">
           My Bookings
         </h1>
+
+        {/* Total Advance Paid */}
+       
 
         {bookings.length === 0 ? (
           <div className="bg-white rounded-lg shadow-md p-6 sm:p-8 text-center">
@@ -114,16 +119,15 @@ export default function UserBookings() {
         ) : (
           <div className="space-y-6">
             {bookings.map((booking) => {
-              const totalPrice = Number(booking.total_price);
-              const advancePaid = booking.advance_paid;
-              const remainingAmount = totalPrice - advancePaid;
+              const totalPrice = Number(booking.total_price) || 0;
+              const advancePaid = booking.advance_paid ?? 0;
+              const remainingAdvance = totalPrice - advancePaid;
 
               return (
                 <div
                   key={booking.id}
                   className="bg-white rounded-lg shadow-md overflow-hidden sm:flex sm:items-center"
                 >
-                  {/* Optional package image */}
                   {booking.package?.image_url && (
                     <img
                       src={booking.package.image_url}
@@ -145,44 +149,47 @@ export default function UserBookings() {
                           </div>
                           <div className="flex items-center gap-1">
                             <IndianRupee className="w-4 h-4" />
-                            <span>Total: ₹{totalPrice.toLocaleString('en-IN')}</span>
+                            <span>Total Price: ₹{totalPrice.toLocaleString('en-IN')}</span>
                           </div>
                           <div className="flex items-center gap-1">
                             <Users className="w-4 h-4" />
                             <span>Members: {booking.number_of_members}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <IndianRupee className="w-4 h-4" />
+                            <span>
+                              Advance Amount: ₹{(booking.advance_amount ?? totalPrice).toLocaleString('en-IN')}
+                            </span>
                           </div>
                         </div>
                       </div>
 
                       <div className="mt-2 sm:mt-0">{getStatusBadge(booking.status)}</div>
                     </div>
+                    
 
                     <div className="border-t pt-4 space-y-3">
-                      <p className="text-sm text-gray-600">
-                        Advance Payment:{' '}
-                        {advancePaid > 0 ? `✓ Paid ₹${advancePaid.toLocaleString('en-IN')}` : `✗ Pending ₹0`}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        Remaining Balance:{' '}
-                        {booking.remaining_paid
-                          ? `✓ Paid ₹${remainingAmount.toLocaleString('en-IN')}`
-                          : `✗ Pending ₹${remainingAmount.toLocaleString('en-IN')}`}
-                      </p>
-
-                      {/* Only Pay Remaining Button */}
-                      {advancePaid > 0 && !booking.remaining_paid && booking.status === 'pending' && (
+                      {/* Advance Payment Button */}
+                      {advancePaid === 0 && booking.status === 'pending' && (
                         <Link
-                          to={`/remaining-payment/${booking.id}`}
-                          className="inline-block mt-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm font-medium"
+                          to={`/payment/${booking.id}`}
+                          className="inline-block bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm font-medium"
                         >
-                          Pay Remaining
+                          Pay Advance
                         </Link>
                       )}
 
-                      {/* Participants */}
+                      {/* Advance Payment Status */}
+                      <p className="text-sm text-gray-600">
+                        Advance Amount Paid: {advancePaid > 0 ? `✓ ₹${advancePaid.toLocaleString('en-IN')}` : '✗ ₹0'}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        Remaining: {remainingAdvance > 0 ? `✗ ₹${remainingAdvance.toLocaleString('en-IN')}` : '✓ Completed'}
+                      </p>
+
                       {booking.members.length > 0 && (
                         <div className="mt-4">
-                          <p className="text-sm font-medium text-gray-700 mb-1">Participants (Contact for admin):</p>
+                          <p className="text-sm font-medium text-gray-700 mb-1">Participants:</p>
                           <ul className="list-disc pl-5 text-gray-600 text-sm space-y-1">
                             {booking.members.map((m) => (
                               <li key={m.id}>

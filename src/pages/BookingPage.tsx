@@ -67,10 +67,10 @@ const BookingPage = () => {
     setSubmitting(true);
     try {
       const totalPrice = pkg!.price_per_head * numberOfMembers;
-      const advancePaid = pkg!.advance_payment * numberOfMembers;
+      const advanceTotal = pkg!.advance_payment * numberOfMembers;
       const travelGroupName = `${member1.name}${numberOfMembers >= 2 ? ` & ${member2.name}` : ''}`;
 
-      // Insert booking
+      // Insert booking with advance_paid = 0 and advance_amount calculated
       const { data: bookingData, error: insertError } = await supabase
         .from('bookings')
         .insert({
@@ -80,9 +80,10 @@ const BookingPage = () => {
           travel_group_name: travelGroupName,
           number_of_members: numberOfMembers,
           total_price: totalPrice,
-          advance_paid: advancePaid,
+          advance_paid: 0,          // initially 0
+          advance_amount: advanceTotal, // expected advance
           status: 'pending',
-          payment_status: 'advance_paid',
+          payment_status: 'not_paid', // initially not paid
         })
         .select()
         .single();
@@ -105,7 +106,7 @@ const BookingPage = () => {
 
       if (membersError) throw membersError;
 
-      alert('Booking confirmed! Admin will review your booking.');
+      alert('Booking created! Please complete advance payment.');
       navigate('/bookings');
     } catch (err: any) {
       console.error(err);
@@ -161,6 +162,7 @@ const BookingPage = () => {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Travel Date */}
             <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 mb-6">
               <p className="text-sm font-medium text-gray-700">Select Travel Date</p>
               <input
@@ -172,6 +174,7 @@ const BookingPage = () => {
               />
             </div>
 
+            {/* Number of Members */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Number of Members <span className="text-red-500">*</span>
@@ -186,6 +189,7 @@ const BookingPage = () => {
               />
             </div>
 
+            {/* Members Info */}
             <div className="space-y-4">
               <div className="border border-gray-200 rounded-lg p-4">
                 <h4 className="font-medium text-gray-900 mb-3">Person 1</h4>
@@ -234,6 +238,7 @@ const BookingPage = () => {
               )}
             </div>
 
+            {/* Booking Summary */}
             <div className="bg-gray-50 rounded-lg p-6 space-y-3">
               <h3 className="font-bold text-gray-900 text-lg mb-4">Booking Summary</h3>
               <div className="flex justify-between text-gray-700">
