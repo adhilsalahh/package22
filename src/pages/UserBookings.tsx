@@ -14,8 +14,7 @@ interface BookingWithPackage {
   id: string;
   booking_date: string;
   total_price: string;
-  advance_paid: number; 
-  remaining_paid: boolean; 
+  advance_paid: string | number; // DB may store string
   status: string;
   created_at: string;
   number_of_members: number;
@@ -94,17 +93,12 @@ export default function UserBookings() {
     );
   }
 
- 
-
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-2 sm:px-6 lg:px-8">
       <div className="max-w-5xl mx-auto">
         <h1 className="text-3xl sm:text-4xl font-bold text-gray-800 mb-8 text-center sm:text-left">
           My Bookings
         </h1>
-
-        {/* Total Advance Paid */}
-       
 
         {bookings.length === 0 ? (
           <div className="bg-white rounded-lg shadow-md p-6 sm:p-8 text-center">
@@ -120,7 +114,7 @@ export default function UserBookings() {
           <div className="space-y-6">
             {bookings.map((booking) => {
               const totalPrice = Number(booking.total_price) || 0;
-              const advancePaid = booking.advance_paid ?? 0;
+              const advancePaid = parseFloat(booking.advance_paid?.toString() || '0');
               const remainingAdvance = totalPrice - advancePaid;
 
               return (
@@ -166,7 +160,6 @@ export default function UserBookings() {
 
                       <div className="mt-2 sm:mt-0">{getStatusBadge(booking.status)}</div>
                     </div>
-                    
 
                     <div className="border-t pt-4 space-y-3">
                       {/* Advance Payment Button */}
@@ -180,12 +173,8 @@ export default function UserBookings() {
                       )}
 
                       {/* Advance Payment Status */}
-                      <p className="text-sm text-gray-600">
-                        Advance Amount Paid: {advancePaid > 0 ? `✓ ₹${advancePaid.toLocaleString('en-IN')}` : '✗ ₹0'}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        Remaining: {remainingAdvance > 0 ? `✗ ₹${remainingAdvance.toLocaleString('en-IN')}` : '✓ Completed'}
-                      </p>
+                      <p>Advance Amount Paid: {advancePaid > 0 ? `✓ ₹${advancePaid.toLocaleString('en-IN')}` : '✗ ₹0'}</p>
+                      <p>Remaining: {remainingAdvance > 0 ? `✗ ₹${remainingAdvance.toLocaleString('en-IN')}` : '✓ Completed'}</p>
 
                       {booking.members.length > 0 && (
                         <div className="mt-4">
