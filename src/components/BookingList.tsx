@@ -1,143 +1,414 @@
-import React from 'react';
-import { Booking, Package } from '../lib/supabase';
-import { CheckCircle2, Clock, Phone, Users, Calendar, IndianRupee } from 'lucide-react';
-import { useApp } from '../context/AppContext';
-import { sendConfirmationToUser } from '../lib/whatsapp';
+import { useState, useEffect } from 'react';
+import { CheckCircle, XCircle, Eye } from 'lucide-react';
+import { supabase, Booking, Package, Profile } from '../../lib/supabase';
+import axios from 'axios';
 
-interface BookingListProps {
-  bookings: Booking[];
-  packages: Package[];
+interface BookingManagementProps {
+  showToast: (message: string, type: 'success' | 'error') => void;
 }
 
-const BookingList: React.FC<BookingListProps> = ({ bookings, packages }) => {
-  const { confirmBooking } = useApp();
+type BookingWithDetails = Booking & {
+  package?: Package;
+  profile?: Profile;
+  advance_receipt_url?: string;
+};
 
-  const getPackageById = (id: string) => {
-    return packages.find(pkg => pkg.id === id);
-  };
+export function BookingManagement({ showToast }: BookingManagementProps) {
+  const [bookings, setBookings] = useState<BookingWithDetails[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedBooking, setSelectedBooking] = useState<BookingWithDetails | null>(null);
+  const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'pending_payment' | 'confirmed' | 'cancelled'>('all');
+  const [cancellationReason, setCancellationReason] = useState('');
 
-  const handleConfirm = async (booking: Booking) => {
-    if (window.confirm('Are you sure you want to confirm this booking?')) {
-      try {
-        await confirmBooking(booking.id);
-        const pkg = getPackageById(booking.package_id);
-        if (pkg) {
-          sendConfirmationToUser(booking.phone, pkg.title, booking.booking_date);
-        }
-        alert('Booking confirmed! Confirmation message will be sent to customer via WhatsApp.');
-      } catch (error) {
-        alert('Failed to confirm booking');
-      }
+  const RESEND_API_KEY = "re_DNGK73TN_D5MEY7rQ3KzactPs43dXmRS8";
+
+  useEffect(() => {
+    fetchBookings();
+  }, []);
+
+  // Fetch bookings with package & profile details
+  const fetchBookings = async () => {
+    try {
+      setLoading(true);
+      const { data: bookingsData, error } = await supabase
+        .from('bookings')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+
+      const bookingsWithDetails = await Promise.all(
+        (bookingsData || []).map(async (booking) => {
+          const [packageRes, profileRes] = await Promise.all([
+            supabase.from('packages').select('*').eq('id', booking.package_id).maybeSingle(),
+            supabase.from('profiles').select('*').eq('id', booking.user_id).maybeSingle(),
+          ]);
+          return {
+            ...booking,
+            package: packageRes.data || undefined,
+            profile: profileRes.data || undefined,
+            advance_receipt_url: booking.advance_receipt_url || undefined,
+          };
+        })
+      );
+      setBookings(bookingsWithDetails);
+    } catch (error) {
+      console.error('Error fetching bookings:', error);
+      showToast('Failed to load bookings', 'error');
+    } finally {
+      setLoading(false);
     }
   };
 
-  if (bookings.length === 0) {
+  // --- Helper: format date ---
+  const formatDate = (dateStr?: string) => {
+    if (!dateStr) return 'No Date';
+    return new Date(dateStr).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  };
+
+  // --- Email HTML Templates ---
+  const bookingConfirmedHtml = (booking: BookingWithDetails) => {
+    const advancePaid = Number(booking.advance_paid || 0);
+    const totalAmount = Number(booking.total_price || 0);
+    const remainingAmount = totalAmount - advancePaid;
+    const formattedDate = formatDate(booking.booking_date || (booking as any).travel_date);
+
+    return `
+      <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+        <h2 style="color: #1E40AF;">Dear ${booking.profile?.username || 'User'},</h2>
+        <p>Your booking has been <strong style="color: #059669;">CONFIRMED</strong>!</p>
+        <p><strong>Booking Details:</strong></p>
+        <table style="width:100%; border-collapse: collapse;">
+          <tr><td style="padding: 8px; border: 1px solid #ddd;"><strong>Package Title</strong></td><td style="padding: 8px; border: 1px solid #ddd;">${booking.package?.title || 'N/A'}</td></tr>
+          <tr><td style="padding: 8px; border: 1px solid #ddd;"><strong>Package ID</strong></td><td style="padding: 8px; border: 1px solid #ddd;">${booking.package_id}</td></tr>
+          <tr><td style="padding: 8px; border: 1px solid #ddd;"><strong>Travel Date</strong></td><td style="padding: 8px; border: 1px solid #ddd;">${formattedDate}</td></tr>
+          <tr><td style="padding: 8px; border: 1px solid #ddd;"><strong>Total Amount</strong></td><td style="padding: 8px; border: 1px solid #ddd;">₹${totalAmount.toLocaleString()}</td></tr>
+          <tr><td style="padding: 8px; border: 1px solid #ddd;"><strong>Advance Paid</strong></td><td style="padding: 8px; border: 1px solid #ddd;">₹${advancePaid.toLocaleString()}</td></tr>
+          <tr><td style="padding: 8px; border: 1px solid #ddd;"><strong>Remaining Amount</strong></td><td style="padding: 8px; border: 1px solid #ddd;">₹${remainingAmount.toLocaleString()}</td></tr>
+        </table>
+        <p style="margin-top: 16px;">Thank you for booking with <strong>Va Oru Trippadikkam</strong>!</p>
+        <p style="font-size: 12px; color: #888;">This is an automated email. For questions, reply to this email.</p>
+      </div>
+    `;
+  };
+
+  const bookingCancelledHtml = (booking: BookingWithDetails, reason: string) => {
+    const formattedDate = formatDate(booking.booking_date || (booking as any).travel_date);
+    return `
+      <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+        <h2 style="color: #B91C1C;">Dear ${booking.profile?.username || 'User'},</h2>
+        <p>Your booking for <strong>${booking.package?.title || 'the package'}</strong> scheduled on <strong>${formattedDate}</strong> has been <strong style="color: #B91C1C;">CANCELLED</strong>.</p>
+        <p><strong>Reason:</strong> ${reason || 'No reason provided'}</p>
+        <p style="margin-top: 16px;">For queries, contact <strong>info@vaorutrippadikkam.com</strong>.</p>
+        <p style="font-size: 12px; color: #888;">This is an automated email.</p>
+      </div>
+    `;
+  };
+
+  const paymentConfirmedHtml = (booking: BookingWithDetails) => {
+    const advancePaid = Number(booking.advance_paid || 0);
+    const formattedDate = formatDate(booking.booking_date || (booking as any).travel_date);
+    return `
+      <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+        <h2 style="color: #059669;">Dear ${booking.profile?.username || 'User'},</h2>
+        <p>We have verified your payment of <strong>₹${advancePaid.toLocaleString()}</strong> for <strong>${booking.package?.title || ''}</strong> scheduled on <strong>${formattedDate}</strong>.</p>
+        <p>Your booking is now <strong style="color: #1E40AF;">CONFIRMED</strong>.</p>
+        <p style="margin-top: 16px;">Thank you for booking with <strong>Va Oru Trippadikkam</strong>!</p>
+        <p style="font-size: 12px; color: #888;">This is an automated email.</p>
+      </div>
+    `;
+  };
+
+  // --- Send email ---
+  const sendBookingEmail = async (email: string, subject: string, html: string) => {
+    try {
+      await axios.post(
+        'https://api.resend.com/emails',
+        { from: 'Va Oru Trippadikkam <info@vaorutrippadikkam.com>', to: email, subject, html },
+        { headers: { Authorization: `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' } }
+      );
+    } catch (err) {
+      console.error('Email sending failed:', err);
+    }
+  };
+
+  // --- Update booking status ---
+  const updateBookingStatus = async (id: string, status: 'confirmed' | 'cancelled') => {
+    try {
+      const updatePayload: any = { status };
+      if (status === 'cancelled') updatePayload.admin_notes = cancellationReason || 'Cancelled by admin';
+
+      const { error } = await supabase.from('bookings').update(updatePayload).eq('id', id);
+      if (error) throw error;
+
+      const booking = bookings.find((b) => b.id === id);
+      if (!booking) return;
+
+      if (status === 'cancelled' && booking.profile?.email) {
+        await sendBookingEmail(booking.profile.email, 'Booking Cancelled', bookingCancelledHtml(booking, cancellationReason));
+      }
+      if (status === 'confirmed' && booking.profile?.email) {
+        await sendBookingEmail(booking.profile.email, 'Booking Confirmed', bookingConfirmedHtml(booking));
+      }
+
+      showToast(`Booking ${status} successfully`, 'success');
+      setCancellationReason('');
+      setSelectedBooking(null);
+      await fetchBookings();
+    } catch (err: any) {
+      console.error('Error updating booking status:', err);
+      showToast(err.message || 'Failed to update booking', 'error');
+    }
+  };
+
+  // --- Payment verification ---
+  const updateBookingPaymentStatus = async (id: string, paymentStatus: 'paid' | 'not_paid') => {
+    try {
+      const booking = bookings.find((b) => b.id === id);
+      if (!booking) return;
+
+      const advanceAmount = Number(booking.advance_paid || 0) || 500;
+      const { error } = await supabase
+        .from('bookings')
+        .update({
+          payment_status: paymentStatus,
+          status: paymentStatus === 'paid' ? 'confirmed' : 'pending',
+          advance_paid: paymentStatus === 'paid' ? advanceAmount : 0,
+        })
+        .eq('id', id);
+      if (error) throw error;
+
+      if (paymentStatus === 'paid' && booking.profile?.email) {
+        await sendBookingEmail(booking.profile.email, 'Payment Confirmed - Booking Confirmed', paymentConfirmedHtml(booking));
+      }
+
+      showToast(`Payment ${paymentStatus === 'paid' ? 'confirmed' : 'rejected'}`, 'success');
+      setSelectedBooking(null);
+      await fetchBookings();
+    } catch (err: any) {
+      console.error('Error updating payment status:', err);
+      showToast(err.message || 'Failed to update payment status', 'error');
+    }
+  };
+
+  const filteredBookings = bookings.filter(
+    (b) =>
+      filterStatus === 'all' ||
+      (filterStatus === 'pending_payment' && b.payment_status === 'pending') ||
+      b.status === filterStatus
+  );
+
+  const getReceiptPublicUrl = (path?: string) => {
+    if (!path) return null;
+    const { data } = supabase.storage.from('receipts').getPublicUrl(path);
+    return (data as any)?.publicUrl || (data as any)?.public_url || null;
+  };
+
+  if (loading)
     return (
-      <div className="text-center py-12 bg-white rounded-xl">
-        <p className="text-xl text-gray-600">No bookings yet.</p>
+      <div className="flex items-center justify-center py-12">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     );
-  }
 
   return (
-    <div className="space-y-4">
-      {bookings.map((booking) => {
-        const pkg = getPackageById(booking.package_id);
-        const totalPrice = pkg ? pkg.price * booking.members.length : 0;
+    <div>
+     <div>
+  {/* Filter */}
+  <div className="flex items-center justify-between mb-6">
+    <h2 className="text-2xl font-bold text-gray-800">Booking Management</h2>
+    <div className="flex space-x-2">
+      {(['all', 'pending', 'pending_payment', 'confirmed', 'cancelled'] as const).map((status) => (
+        <button
+          key={status}
+          onClick={() => setFilterStatus(status)}
+          className={`px-4 py-2 rounded-lg transition-colors ${
+            filterStatus === status ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+          }`}
+        >
+          {status.charAt(0).toUpperCase() + status.slice(1)}
+        </button>
+      ))}
+    </div>
+  </div>
 
-        return (
-          <div
-            key={booking.id}
-            className="bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow p-6"
-          >
-            <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-              <div className="flex-1">
-                <div className="flex items-center gap-3 mb-3">
-                  <h3 className="text-xl font-bold text-gray-800">
-                    {pkg?.title || 'Unknown Package'}
-                  </h3>
+  {/* Table */}
+  <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+    <div className="overflow-x-auto">
+      <table className="min-w-full divide-y divide-gray-200">
+        <thead className="bg-gray-50">
+          <tr>
+            <th className="px-6 py-3">Booking ID</th>
+            <th className="px-6 py-3">User</th>
+            <th className="px-6 py-3">Package</th>
+            <th className="px-6 py-3">Travel Date</th>
+            <th className="px-6 py-3">Advance Paid</th>
+            <th className="px-6 py-3">UTR / Txn ID</th>
+            <th className="px-6 py-3">Total Amount</th>
+            <th className="px-6 py-3">Status</th>
+            <th className="px-6 py-3">Actions</th>
+          </tr>
+        </thead>
+
+        <tbody className="bg-white divide-y divide-gray-200">
+          {filteredBookings.map((booking) => {
+            const advancePaid = booking.advance_paid ? Number(booking.advance_paid) : 0;
+            const totalAmount = booking.total_price ? Number(booking.total_price) : 0;
+            const displayDate = booking.booking_date || (booking as any).travel_date || null;
+
+            return (
+              <tr key={booking.id}>
+                <td className="px-6 py-4">{booking.id?.slice(0, 8)}...</td>
+                <td className="px-6 py-4">
+                  {booking.profile?.username || 'Unknown'}
+                  <div className="text-xs text-gray-500">{booking.profile?.email || 'N/A'}</div>
+                  <div className="text-xs text-gray-500">User ID: {booking.user_id}</div>
+                </td>
+                <td className="px-6 py-4">{booking.package?.title || 'N/A'}</td>
+                <td className="px-6 py-4">
+                  {displayDate ? new Date(displayDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'No Date'}
+                </td>
+                <td className="px-6 py-4">₹{advancePaid.toLocaleString()}</td>
+                <td className="px-6 py-4">{booking.utr_id || '—'}</td>
+                <td className="px-6 py-4">₹{totalAmount.toLocaleString()}</td>
+                <td className="px-6 py-4">
                   <span
-                    className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                    className={`px-3 py-1 rounded-full text-xs ${
                       booking.status === 'confirmed'
-                        ? 'bg-green-100 text-green-700'
-                        : 'bg-yellow-100 text-yellow-700'
+                        ? 'bg-green-100 text-green-800'
+                        : booking.status === 'cancelled'
+                        ? 'bg-red-100 text-red-800'
+                        : 'bg-yellow-100 text-yellow-800'
                     }`}
                   >
-                    {booking.status === 'confirmed' ? 'Confirmed' : 'Pending'}
+                    {booking.status}
                   </span>
-                </div>
+                </td>
+                <td className="px-6 py-4">
+                  <button onClick={() => setSelectedBooking(booking)} className="text-blue-600">
+                    <Eye className="h-5 w-5" />
+                  </button>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-                  <div className="flex items-center text-gray-700">
-                    <Phone className="h-5 w-5 mr-2 text-emerald-600" />
-                    <div>
-                      <p className="font-semibold">{booking.name}</p>
-                      <p className="text-sm">{booking.phone}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center text-gray-700">
-                    <Calendar className="h-5 w-5 mr-2 text-emerald-600" />
-                    <div>
-                      <p className="font-semibold">Booking text</p>
-                      <p className="text-sm">
-                        {new Date(booking.booking_date).toLocaleDateString('en-IN', {
-                          weekday: 'short',
-                          year: 'numeric',
-                          month: 'short',
-                          day: 'numeric',
-                        })}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center text-gray-700">
-                    <Users className="h-5 w-5 mr-2 text-emerald-600" />
-                    <div>
-                      <p className="font-semibold">{booking.members.length} Members</p>
-                      <p className="text-sm">
-                        {booking.members.map((m) => m.name).join(', ')}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center text-gray-700">
-                    <IndianRupee className="h-5 w-5 mr-2 text-emerald-600" />
-                    <div>
-                      <p className="font-semibold">Total Amount</p>
-                      <p className="text-sm text-emerald-600 font-bold">₹{totalPrice}</p>
-                    </div>
-                  </div>
-                </div>
+  {/* Modal */}
+  {selectedBooking && (
+    <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+      <div className="bg-white rounded-xl w-full max-w-2xl p-6 shadow-xl">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-xl font-bold text-gray-800">Booking Details</h3>
+          <button onClick={() => setSelectedBooking(null)}>
+            <XCircle className="h-6 w-6 text-gray-500" />
+          </button>
+        </div>
 
-                <div className="bg-gray-50 rounded-lg p-3">
-                  <p className="text-sm font-semibold text-gray-700 mb-2">Member Details:</p>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                    {booking.members.map((member, index) => (
-                      <div key={index} className="text-sm text-gray-600">
-                        {member.name} ({member.age}y)
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <p className="text-xs text-gray-500 mt-3">
-                  Booked on: {new Date(booking.created_at).toLocaleString('en-IN')}
-                </p>
-              </div>
-
-              {booking.status === 'pending' && (
-                <button
-                  onClick={() => handleConfirm(booking)}
-                  className="flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-6 py-3 rounded-lg transition-colors shadow-md"
-                >
-                  <CheckCircle2 className="h-5 w-5" />
-                  Confirm Booking
-                </button>
-              )}
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="font-medium text-gray-500">User</p>
+              <p>{selectedBooking.profile?.username || 'Unknown'}</p>
+              <p className="text-sm text-gray-500">{selectedBooking.profile?.email || 'N/A'}</p>
+              <p className="text-sm text-gray-500">User ID: {selectedBooking.user_id}</p>
+            </div>
+            <div>
+              <p className="font-medium text-gray-500">Package</p>
+              <p>{selectedBooking.package?.title || 'N/A'}</p>
+            </div>
+            <div>
+              <p className="font-medium text-gray-500">Travel Date</p>
+              <p>
+                {(selectedBooking.booking_date || (selectedBooking as any).travel_date)
+                  ? new Date(selectedBooking.booking_date || (selectedBooking as any).travel_date).toLocaleDateString('en-IN', {
+                      day: '2-digit',
+                      month: 'short',
+                      year: 'numeric',
+                    })
+                  : 'No Date'}
+              </p>
             </div>
           </div>
-        );
-      })}
+
+          <div className="border-t pt-4">
+            <p className="text-lg font-bold">Total Amount: ₹{(selectedBooking.total_price ?? 0).toLocaleString()}</p>
+            <p className="text-blue-600 font-semibold">Advance Paid: ₹{(selectedBooking.advance_paid ?? 0).toLocaleString()}</p>
+
+            {selectedBooking.utr_id && <p className="text-gray-700">UTR / Txn ID: {selectedBooking.utr_id}</p>}
+
+            {selectedBooking.advance_receipt_url && (
+              <div className="pt-4">
+                <p className="font-medium text-gray-500">Payment Screenshot:</p>
+                <img
+                  src={getReceiptPublicUrl(selectedBooking.advance_receipt_url) || ''}
+                  alt="Payment Screenshot"
+                  className="mt-2 border rounded-lg max-h-60 object-contain"
+                />
+                {!getReceiptPublicUrl(selectedBooking.advance_receipt_url) && (
+                  <p className="text-sm text-red-500 mt-2">Receipt not public / not available.</p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Payment verify buttons */}
+          {selectedBooking.payment_status === 'pending' && (
+            <div className="flex gap-4 pt-4">
+              <button
+                onClick={() => updateBookingPaymentStatus(selectedBooking.id, 'paid')}
+                className="flex-1 bg-green-600 text-white py-2 rounded-lg flex items-center justify-center"
+              >
+                <CheckCircle className="h-5 w-5 mr-2" />
+                Confirm Payment
+              </button>
+              <button
+                onClick={() => updateBookingPaymentStatus(selectedBooking.id, 'not_paid')}
+                className="flex-1 bg-red-600 text-white py-2 rounded-lg flex items-center justify-center"
+              >
+                <XCircle className="h-5 w-5 mr-2" />
+                Reject Payment
+              </button>
+            </div>
+          )}
+
+          {/* Booking status confirm / cancel */}
+          {selectedBooking.status === 'pending' && selectedBooking.payment_status === 'paid' && (
+            <div className="flex gap-4 pt-4">
+              <button
+                onClick={() => updateBookingStatus(selectedBooking.id, 'confirmed')}
+                className="flex-1 bg-green-600 text-white py-2 rounded-lg flex items-center justify-center"
+              >
+                <CheckCircle className="h-5 w-5 mr-2" />
+                Confirm Booking
+              </button>
+
+              <div className="flex-1 flex flex-col">
+                <input
+                  type="text"
+                  placeholder="Cancellation reason"
+                  value={cancellationReason}
+                  onChange={(e) => setCancellationReason(e.target.value)}
+                  className="border rounded-lg px-3 py-2 mb-2 w-full"
+                />
+                <button
+                  onClick={() => updateBookingStatus(selectedBooking.id, 'cancelled')}
+                  className="bg-red-600 text-white py-2 rounded-lg flex items-center justify-center w-full"
+                >
+                  <XCircle className="h-5 w-5 mr-2" />
+                  Cancel Booking
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )}
+</div>
+
     </div>
   );
-};
-
-export default BookingList;
+}
