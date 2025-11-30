@@ -2,7 +2,6 @@
 import { useState, useEffect } from 'react';
 import { CheckCircle, XCircle, Eye } from 'lucide-react';
 import { supabase, Booking, Package, Profile } from '../../lib/supabase';
-import axios from 'axios';
 
 interface BookingManagementProps {
   showToast: (message: string, type: 'success' | 'error') => void;
@@ -57,19 +56,43 @@ export function BookingManagement({ showToast }: BookingManagementProps) {
     }
   };
 
-  // Email sender via Supabase Edge Function
-  const sendBookingEmail = async (email: string, subject: string, html: string) => {
+  const sendConfirmationEmail = async (booking: BookingWithDetails) => {
     try {
-      await axios.post(
-        'https://yeegfjvakerouevwwmna.supabase.co/functions/v1/send-booking-confirmation',
-        { to: email, subject, html }
-      );
+      const travelDate = booking.booking_date || (booking as any).travel_date;
+      const formattedDate = travelDate
+        ? new Date(travelDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+        : 'No Date';
+
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+      const response = await fetch(`${supabaseUrl}/functions/v1/send-confirmation-email`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${anonKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          bookingId: booking.id,
+          userEmail: booking.profile?.email,
+          userName: booking.profile?.username || 'User',
+          packageTitle: booking.package?.title || 'N/A',
+          travelDate: formattedDate,
+          totalAmount: Number(booking.total_price || 0),
+          advanceAmount: Number(booking.advance_paid || 0),
+          members: [],
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        console.error('Email sending failed:', error);
+      }
     } catch (err) {
-      console.error('Email sending failed:', err);
+      console.error('Email sending error:', err);
     }
   };
 
-  // Update booking status
   const updateBookingStatus = async (id: string, status: 'confirmed' | 'cancelled') => {
     try {
       const updatePayload: any = { status };
@@ -78,37 +101,10 @@ export function BookingManagement({ showToast }: BookingManagementProps) {
       if (error) throw error;
 
       const booking = bookings.find((b) => b.id === id);
+      if (!booking) return;
 
-      if (!booking?.profile?.email) return;
-
-      if (status === 'cancelled') {
-        const html = `
-          <h2>Dear ${booking.profile.username || 'User'},</h2>
-          <p>Your booking for <b>${booking.package?.title || 'the package'}</b> has been <b>cancelled</b>.</p>
-          <p><b>Reason:</b> ${cancellationReason || 'No reason provided'}</p>
-          <p>If you have questions, reply to this email.</p>
-        `;
-        await sendBookingEmail(booking.profile.email, 'Booking Cancelled', html);
-      }
-
-      if (status === 'confirmed') {
-        const advancePaid = Number(booking.advance_paid || 0);
-        const totalAmount = Number(booking.total_price || 0);
-        const remainingAmount = totalAmount - advancePaid;
-        const html = `
-          <h2>Dear ${booking.profile.username || 'User'},</h2>
-          <p>Your booking has been <b>confirmed</b>!</p>
-          <p><b>Booking Details:</b></p>
-          <ul>
-            <li><b>Package Title:</b> ${booking.package?.title || 'N/A'}</li>
-            <li><b>Package ID:</b> ${booking.package_id}</li>
-            <li><b>Total Amount:</b> ₹${totalAmount.toLocaleString()}</li>
-            <li><b>Advance Paid:</b> ₹${advancePaid.toLocaleString()}</li>
-            <li><b>Remaining Amount:</b> ₹${remainingAmount.toLocaleString()}</li>
-          </ul>
-          <p>Thank you for booking with us!</p>
-        `;
-        await sendBookingEmail(booking.profile.email, 'Booking Confirmed', html);
+      if (status === 'confirmed' && booking.profile?.email) {
+        await sendConfirmationEmail(booking);
       }
 
       showToast(`Booking ${status} successfully`, 'success');
@@ -121,7 +117,6 @@ export function BookingManagement({ showToast }: BookingManagementProps) {
     }
   };
 
-  // Payment verify
   const updateBookingPaymentStatus = async (id: string, paymentStatus: 'paid' | 'not_paid') => {
     try {
       const booking = bookings.find((b) => b.id === id);
@@ -137,12 +132,7 @@ export function BookingManagement({ showToast }: BookingManagementProps) {
       if (error) throw error;
 
       if (paymentStatus === 'paid' && booking?.profile?.email) {
-        const html = `
-          <h2>Dear ${booking.profile.username || 'User'},</h2>
-          <p>We have verified your payment of <b>₹${advanceAmount}</b> for <b>${booking.package?.title || ''}</b>.</p>
-          <p>Your booking is now <b>confirmed</b>.</p>
-        `;
-        await sendBookingEmail(booking.profile.email, 'Payment Confirmed - Booking Confirmed', html);
+        await sendConfirmationEmail(booking);
       }
 
       showToast(`Payment ${paymentStatus === 'paid' ? 'confirmed' : 'rejected'}`, 'success');
