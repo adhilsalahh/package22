@@ -55,10 +55,6 @@ export function PackageDetails() {
       return;
     }
 
-    if (!selectedDate) {
-      alert('Please select your travel date');
-      return;
-    }
 
     navigate(`/booking/${packageId}`, {
       state: { package: pkg, date: selectedDate },
@@ -141,35 +137,7 @@ export function PackageDetails() {
 </p>
 
             {/* Date Picker Section */}
-          <div className="mb-8">
-  <label className="block text-blue-900 font-extrabold mb-2 text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold">
-  Select Your Travel Date
-</label>
-
-
-  <div className=" max-w-[460px] relative group">
-    <input
-      id="travelDateInput"
-      type="date"
-      value={selectedDate}
-      onChange={(e) => setSelectedDate(e.target.value)}
-      className="w-full max-w-[460px] px-5 py-4 pr-14 rounded-2xl
-                 border border-gray-300 bg-white text-gray-800 text-lg
-                 shadow-md transition-all duration-300
-                 focus:ring-4 focus:ring-blue-300 focus:border-blue-600
-                 group-hover:shadow-xl group-hover:border-blue-400"
-    />
-
-    {/* Calendar Icon */}
-   
-    {/* Glow Effect */}
-    <span
-      className="absolute inset-0 rounded-2xl pointer-events-none
-                 transition-all duration-500
-                 group-hover:shadow-[0_0_18px_4px_rgba(0,123,255,0.4)]"
-    ></span>
-  </div>
-</div>
+      
 
          
        {/* Inclusion Section */}

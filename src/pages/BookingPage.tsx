@@ -3,6 +3,8 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Calendar, ChevronLeft } from 'lucide-react';
 import { supabase, Package } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 
 const BookingPage = () => {
   const { id: packageId } = useParams<{ id: string }>();
@@ -11,7 +13,8 @@ const BookingPage = () => {
   const { package: pkgFromState } = location.state || {};
   const [pkg, setPkg] = useState<Package | null>(pkgFromState || null);
   const [selectedDate, setSelectedDate] = useState<string>('');
-  const [numberOfMembers, setNumberOfMembers] = useState(2);
+  const [soldOutDates, setSoldOutDates] = useState<Date[]>([]);
+  const [numberOfMembers, setNumberOfMembers] = useState<number | string>(2);
   const [member1, setMember1] = useState({ name: '', phone: '' });
   const [member2, setMember2] = useState({ name: '', phone: '' });
   const [loading, setLoading] = useState(!pkgFromState);
@@ -39,6 +42,17 @@ const BookingPage = () => {
         .maybeSingle();
       if (error) throw error;
       setPkg(data);
+
+      // Fetch sold-out dates
+      if (data) {
+        const { data: soldData } = await supabase
+          .from('package_soldout_dates')
+          .select('soldout_date')
+          .eq('package_id', data.id);
+        if (soldData) {
+          setSoldOutDates(soldData.map((d: any) => new Date(d.soldout_date)));
+        }
+      }
     } catch (err) {
       console.error(err);
       setError('Failed to load package details');
@@ -59,52 +73,56 @@ const BookingPage = () => {
       setError('Please fill in all details for Person 1');
       return;
     }
-    if (numberOfMembers >= 2 && (!member2.name.trim() || !member2.phone.trim())) {
+    if (Number(numberOfMembers) >= 2 && (!member2.name.trim() || !member2.phone.trim())) {
       setError('Please fill in all details for Person 2');
       return;
     }
 
     setSubmitting(true);
     try {
-      const totalPrice = pkg!.price_per_head * numberOfMembers;
-      const advanceTotal = pkg!.advance_payment * numberOfMembers;
-      const travelGroupName = `${member1.name}${numberOfMembers >= 2 ? ` & ${member2.name}` : ''}`;
+      const totalPrice = pkg!.price_per_head * Number(numberOfMembers);
+      const advanceTotal = pkg!.advance_payment * Number(numberOfMembers);
+      const travelGroupName = `${member1.name}${Number(numberOfMembers) >= 2 ? ` & ${member2.name}` : ''}`;
 
-      // Insert booking with advance_paid = 0 and advance_amount calculated
+      // Insert booking
       const { data: bookingData, error: insertError } = await supabase
         .from('bookings')
         .insert({
-          user_id: user!.id,
+          user_id: user?.id || null,           // guest booking support
           package_id: pkg!.id,
           booking_date: selectedDate,
           travel_group_name: travelGroupName,
-          number_of_members: numberOfMembers,
+          number_of_members: Number(numberOfMembers),
           total_price: totalPrice,
-          advance_paid: 0,          // initially 0
-          advance_amount: advanceTotal, // expected advance
+          advance_paid: 0,
+          advance_amount: advanceTotal,
           status: 'pending',
-          payment_status: 'not_paid', // initially not paid
+          payment_status: 'not_paid',
+          guest_name: member1.name,           // save person 1
+          guest_phone: member1.phone          // save person 1
         })
         .select()
         .single();
 
       if (insertError) throw insertError;
-
       const bookingId = bookingData.id;
 
       // Insert booking members
       const membersToInsert = [
         { booking_id: bookingId, member_name: member1.name, member_phone: member1.phone },
-        ...(numberOfMembers >= 2
+        ...(Number(numberOfMembers) >= 2
           ? [{ booking_id: bookingId, member_name: member2.name, member_phone: member2.phone }]
           : []),
       ];
 
-      const { error: membersError } = await supabase
-        .from('booking_members')
-        .insert(membersToInsert);
-
+      const { error: membersError } = await supabase.from('booking_members').insert(membersToInsert);
       if (membersError) throw membersError;
+
+      // Add booked date to sold-out dates DB (just insert, no overwrite)
+      await supabase.from('package_soldout_dates').insert({
+        package_id: pkg!.id,
+        soldout_date: selectedDate
+      });
 
       alert('Booking created! Please complete advance payment.');
       navigate('/bookings');
@@ -137,8 +155,8 @@ const BookingPage = () => {
     );
   }
 
-  const totalPrice = pkg.price_per_head * numberOfMembers;
-  const advanceTotal = pkg.advance_payment * numberOfMembers;
+  const totalPrice = pkg.price_per_head * Number(numberOfMembers);
+  const advanceTotal = pkg.advance_payment * Number(numberOfMembers);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -165,13 +183,29 @@ const BookingPage = () => {
             {/* Travel Date */}
             <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 mb-6">
               <p className="text-sm font-medium text-gray-700">Select Travel Date</p>
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="mt-2 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                required
+              <DatePicker
+                selected={selectedDate ? new Date(selectedDate) : null}
+                onChange={(date: Date | null) => setSelectedDate(date ? date.toISOString().split('T')[0] : '')}
+                inline
+                highlightDates={[
+                  {
+                    'react-datepicker__day--highlighted-custom': soldOutDates,
+                  },
+                ]}
+                filterDate={date => !soldOutDates.some(d => d.toDateString() === date.toDateString())}
+                minDate={new Date()}
               />
+              <p className="mt-2 text-red-600 font-semibold">Red dates are sold out</p>
+
+              <style>
+                {`
+                  .react-datepicker__day--highlighted-custom {
+                    background-color: red !important;
+                    color: white !important;
+                    border-radius: 50%;
+                  }
+                `}
+              </style>
             </div>
 
             {/* Number of Members */}
@@ -183,7 +217,14 @@ const BookingPage = () => {
                 type="number"
                 min="1"
                 value={numberOfMembers}
-                onChange={(e) => setNumberOfMembers(Math.max(1, parseInt(e.target.value) || 1))}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === '') setNumberOfMembers('');
+                  else {
+                    const num = parseInt(val, 10);
+                    if (!isNaN(num)) setNumberOfMembers(num);
+                  }
+                }}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                 required
               />
@@ -213,7 +254,7 @@ const BookingPage = () => {
                 </div>
               </div>
 
-              {numberOfMembers >= 2 && (
+              {Number(numberOfMembers) >= 2 && (
                 <div className="border border-gray-200 rounded-lg p-4">
                   <h4 className="font-medium text-gray-900 mb-3">Person 2</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -3,11 +3,14 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import QRCode from 'qrcode';
 import { CheckCircle } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+
 
 export default function AdvancePaymentPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-
+  const [paymentSettings, setPaymentSettings] = useState<PaymentSettings[]>([]);
+ const { user } = useAuth();
   const [booking, setBooking] = useState<any>(null);
   const [qr, setQr] = useState('');
   const [loading, setLoading] = useState(false);
@@ -20,36 +23,53 @@ export default function AdvancePaymentPage() {
   // ==========================
   useEffect(() => {
     const fetchBooking = async () => {
-      const { data, error } = await supabase
-        .from('bookings')
-        .select('*')
-        .eq('id', id)
-        .single();
+      if (!user?.id) return; // wait for user
+      try {
+        const { data, error } = await supabase
+          .from('bookings')
+          .select(`
+            *,
+            package:packages(id, title, price_per_head, image_url),
+            members:booking_members(id, member_name, member_phone)
+          `)
+          .eq('id', id)
+          .single(); // fetch single booking by id
 
-      if (error) return console.error(error);
-      setBooking(data);
+        if (error) throw error;
+        setBooking(data);
+      } catch (err) {
+        console.error(err);
+      }
     };
 
     fetchBooking();
-  }, [id]);
+  }, [user?.id, id]);
+
 
   // ==========================
   // Generate QR Code
   // ==========================
-  useEffect(() => {
-    if (!booking) return;
+useEffect(() => {
+  if (!booking) return;
 
-    const upiId = "8129464465@okaxis";
-    const payeeName = "Va Oru Trippadikkam";
+  const amount = Number(booking.advance_amount) || 0;
 
-    const amount = booking.advance_amount || 0;
+  const upiId =
+    paymentSettings.find((s) => s.setting_key === "upi_id")?.setting_value ||
+    "8129464465@okaxis";
 
-    const upiLink = `upi://pay?pa=${upiId}&pn=${payeeName}&am=${amount}&cu=INR&tn=Advance Payment for Booking ${booking.id}`;
+  const payeeName =
+    paymentSettings.find((s) => s.setting_key === "payee_name")?.setting_value ||
+    "Va Oru Trippadikkam";
 
-    QRCode.toDataURL(upiLink)
-      .then(setQr)
-      .catch((err) => console.error(err));
-  }, [booking]);
+  const upiLink = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(
+    payeeName
+  )}&am=${amount}&cu=INR&tn=Advance Payment for Booking ${booking.id}`;
+
+  QRCode.toDataURL(upiLink)
+    .then(setQr)
+    .catch((err) => console.error(err));
+}, [booking, paymentSettings]);
 
   // ==========================
   // Upload Receipt
@@ -130,10 +150,10 @@ export default function AdvancePaymentPage() {
 
       {/* Package Info */}
       <div className="p-4 bg-gray-100 rounded-xl mb-4">
-        <p><strong>Package:</strong> {booking.package_name}</p>
-        <p><strong>Travel Date:</strong> {booking.travel_date}</p>
-        <p><strong>Total:</strong> ₹{booking.total_amount}</p>
-        <p><strong>Members:</strong> {booking.members}</p>
+        <p><strong>Package:</strong> {booking.package?.title || 'Package'}</p>
+  <p><strong>Travel Date:</strong> {booking.booking_date}</p>
+  <p><strong>Total:</strong> ₹{booking.total_price}</p>
+        <p><strong>Members:</strong> {booking.number_of_members}</p>
         <p><strong>Advance Amount:</strong> ₹{booking.advance_amount}</p>
       </div>
 

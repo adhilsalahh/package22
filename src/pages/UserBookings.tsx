@@ -139,7 +139,7 @@ export default function UserBookings() {
                         <div className="flex flex-wrap gap-4 text-sm text-gray-600">
                           <div className="flex items-center gap-1">
                             <Calendar className="w-4 h-4" />
-                            <span>Travel: {new Date(booking.booking_date).toLocaleDateString()}</span>
+                            <span>Travel: {new Date(booking.booking_date).toLocaleDateString('en-IN')}</span>
                           </div>
                           <div className="flex items-center gap-1">
                             <IndianRupee className="w-4 h-4" />
