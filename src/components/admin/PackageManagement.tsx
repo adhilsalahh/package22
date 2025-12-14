@@ -350,7 +350,7 @@ export function PackageManagement({ showToast }: PackageManagementProps) {
                 <tr key={pkg.id}>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">{pkg.title}</div>
-                    
+
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-600">{pkg.destination}</div>
@@ -415,6 +415,56 @@ export function PackageManagement({ showToast }: PackageManagementProps) {
 
               <form onSubmit={handleSubmit}>
                 <div className="space-y-6">
+                  {/* Template Button */}
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormData(prev => ({
+                          ...prev,
+                          title: 'Kolukumalai Trekking & Camping Package',
+                          description: `Experience the breathtaking sunrise at Kolukumalai, the world's highest tea estate, combined with stunning sunset views at Anayirangal Dam. Stay in cozy home stays, enjoy trekking, campfire, music, unlimited food, and an unforgettable offroad jeep safari adventure.`,
+                          destination: 'Kolukumalai, Munnar',
+                          price_per_head: 2600,
+                          advance_payment: 1000,
+                          duration_days: 2,
+                          max_capacity: 50,
+                          image_url: 'https://www.vaorutrippadikkam.com/kolukumalai7.jpg'
+                        }));
+                        setInclusions([
+                          "🌅 Phantom Rock or Anayirangal Dam View Sunset Trekking",
+                          "🌄 Kolukumalai Sunrise Trekking",
+                          "🔥 Campfire",
+                          "🎶 Music",
+                          "☕ Tea",
+                          "🍽 Dinner",
+                          "🍞 Breakfast",
+                          "🍗 Chicken 65",
+                          "🚗 Offroad Jeep Safari"
+                        ]);
+                        setFacilities([
+                          "🌿 Free WiFi",
+                          "🌿 Trekking Guide",
+                          "🌿 24 Hours Service Man",
+                          "🌿 Bike and Car Parking Area",
+                          "🌿 Mobile Charging Point",
+                          "🌿 Separate Washrooms"
+                        ]);
+                        setItinerary([
+                          { day: 1, title: 'Day 1 - Sunset Trek & Camp Activities', description: '02:00 PM Check In\n05:00 PM Sunset Trekking\n09:00 PM Dinner & Campfire' },
+                          { day: 2, title: 'Day 2 - Sunrise Trek & Return', description: '04:00 AM Wake Up\n04:30 AM Jeep Trek\n06:30 AM Sunrise View\n09:30 AM Breakfast\n11:30 AM Check Out' }
+                        ]);
+                        setContactInfo({
+                          phone: '917592049934',
+                          email: '',
+                          website: ''
+                        });
+                      }}
+                      className="text-sm text-blue-600 underline"
+                    >
+                      Autofill Kolukumalai Template
+                    </button>
+                  </div>
                   <div>
                     <h4 className="text-lg font-semibold text-gray-800 mb-4">Basic Information</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

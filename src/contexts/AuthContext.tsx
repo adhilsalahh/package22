@@ -72,13 +72,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const newUser = data.user;
     if (!newUser) return;
 
-    // This will work even if RLS enabled (because user owns row)
-    await supabase.from("profiles").upsert({
+    const { error: profileError } = await supabase.from("profiles").upsert({
       id: newUser.id,
+      email: email,
       full_name: fullName,
       phone: phone,
       is_admin: false,
     });
+
+    if (profileError) {
+      throw new Error(`Failed to create profile: ${profileError.message}`);
+    }
   };
 
   // LOGOUT — FIXED (No AuthSessionMissingError)
@@ -105,3 +109,4 @@ export const useAuth = () => {
   if (!ctx) throw new Error("useAuth must be used within AuthProvider");
   return ctx;
 };
+

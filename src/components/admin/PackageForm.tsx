@@ -32,6 +32,7 @@ export function PackageForm({ onSuccess }: PackageFormProps) {
     is_active: true,
   });
 
+  const [galleryImages, setGalleryImages] = useState<string[]>(['']);
   const [inclusions, setInclusions] = useState<string[]>(['']);
   const [facilities, setFacilities] = useState<string[]>(['']);
   const [itinerary, setItinerary] = useState<ItineraryItem[]>([
@@ -42,6 +43,20 @@ export function PackageForm({ onSuccess }: PackageFormProps) {
     email: '',
     website: '',
   });
+
+  const handleAddGalleryImage = () => {
+    setGalleryImages([...galleryImages, '']);
+  };
+
+  const handleRemoveGalleryImage = (index: number) => {
+    setGalleryImages(galleryImages.filter((_, i) => i !== index));
+  };
+
+  const handleGalleryImageChange = (index: number, value: string) => {
+    const updated = [...galleryImages];
+    updated[index] = value;
+    setGalleryImages(updated);
+  };
 
   const handleAddInclusion = () => {
     setInclusions([...inclusions, '']);
@@ -97,9 +112,11 @@ export function PackageForm({ onSuccess }: PackageFormProps) {
       const filteredInclusions = inclusions.filter(inc => inc.trim() !== '');
       const filteredFacilities = facilities.filter(fac => fac.trim() !== '');
       const filteredItinerary = itinerary.filter(item => item.title.trim() !== '' || item.description.trim() !== '');
+      const filteredGalleryImages = galleryImages.filter(img => img.trim() !== '');
 
       const { error } = await supabase.from('packages').insert({
         ...formData,
+        gallery_images: filteredGalleryImages,
         inclusions: filteredInclusions,
         facilities: filteredFacilities,
         itinerary: filteredItinerary,
@@ -122,6 +139,7 @@ export function PackageForm({ onSuccess }: PackageFormProps) {
         image_url: '',
         is_active: true,
       });
+      setGalleryImages(['']);
       setInclusions(['']);
       setFacilities(['']);
       setItinerary([{ day: 1, title: '', description: '' }]);
@@ -332,6 +350,58 @@ export function PackageForm({ onSuccess }: PackageFormProps) {
                 />
               </div>
             )}
+          </div>
+        </div>
+
+        <div>
+          <h4 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+            <ImageIcon className="w-5 h-5 mr-2" />
+            Gallery Images
+          </h4>
+          <div className="space-y-3">
+            {galleryImages.map((img, index) => (
+              <div key={index} className="space-y-3">
+                <div className="flex space-x-2">
+                  <input
+                    type="url"
+                    value={img}
+                    onChange={(e) => handleGalleryImageChange(index, e.target.value)}
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="https://example.com/gallery-image.jpg"
+                  />
+                  {galleryImages.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveGalleryImage(index)}
+                      className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                  )}
+                </div>
+                {img && (
+                  <div className="border border-gray-200 rounded-lg p-3 bg-gray-50 max-w-sm">
+                    <p className="text-xs font-medium text-gray-700 mb-1">Preview:</p>
+                    <img
+                      src={img}
+                      alt={`Gallery ${index + 1}`}
+                      className="w-full h-32 object-cover rounded-lg"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = 'https://via.placeholder.com/400x300?text=Invalid+Image+URL';
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={handleAddGalleryImage}
+              className="flex items-center space-x-2 px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Add Gallery Image</span>
+            </button>
           </div>
         </div>
 

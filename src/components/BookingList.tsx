@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { CheckCircle, XCircle, Eye } from 'lucide-react';
+import { CheckCircle, XCircle, Eye, MessageCircle, Save } from 'lucide-react';
 import { supabase, Booking, Package, Profile } from '../../lib/supabase';
+import { sendConfirmationToUser } from '../../lib/whatsapp';
 import axios from 'axios';
 
 interface BookingManagementProps {
@@ -19,12 +20,20 @@ export function BookingManagement({ showToast }: BookingManagementProps) {
   const [selectedBooking, setSelectedBooking] = useState<BookingWithDetails | null>(null);
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'pending_payment' | 'confirmed' | 'cancelled'>('all');
   const [cancellationReason, setCancellationReason] = useState('');
+  const [adminNotes, setAdminNotes] = useState('');
 
   const RESEND_API_KEY = "re_DNGK73TN_D5MEY7rQ3KzactPs43dXmRS8";
 
   useEffect(() => {
     fetchBookings();
   }, []);
+
+  useEffect(() => {
+    if (selectedBooking) {
+      setAdminNotes(selectedBooking.admin_notes || '');
+      setCancellationReason('');
+    }
+  }, [selectedBooking]);
 
   // Fetch bookings with package & profile details
   const fetchBookings = async () => {
@@ -160,6 +169,41 @@ export function BookingManagement({ showToast }: BookingManagementProps) {
     }
   };
 
+  const saveAdminNotes = async () => {
+    if (!selectedBooking) return;
+    try {
+      const { error } = await supabase
+        .from('bookings')
+        .update({ admin_notes: adminNotes })
+        .eq('id', selectedBooking.id);
+      
+      if (error) throw error;
+      showToast('Notes saved successfully', 'success');
+      // Update local state
+      setBookings(bookings.map(b => b.id === selectedBooking.id ? { ...b, admin_notes: adminNotes } : b));
+    } catch (err: any) {
+       console.error('Error saving notes:', err);
+       showToast('Failed to save notes', 'error');
+    }
+  };
+
+  const handleWhatsAppConfirmation = () => {
+    if (!selectedBooking) return;
+    // Prefer phone from explicit booking field if available (not in types currently, assuming profile)
+    // Or check if 'booking.phone' exists (it should if BookingForm saves it)
+    const phone = (selectedBooking as any).phone || selectedBooking.profile?.phone;
+    
+    if (!phone) {
+      showToast('No phone number available for this user', 'error');
+      return;
+    }
+
+    const packageTitle = selectedBooking.package?.title || 'your trip';
+    const bookingDate = formatDate(selectedBooking.booking_date || (selectedBooking as any).travel_date);
+
+    sendConfirmationToUser(phone, packageTitle, bookingDate);
+  };
+
   // --- Payment verification ---
   const updateBookingPaymentStatus = async (id: string, paymentStatus: 'paid' | 'not_paid') => {
     try {
@@ -206,7 +250,7 @@ export function BookingManagement({ showToast }: BookingManagementProps) {
   if (loading)
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
       </div>
     );
 
@@ -222,10 +266,10 @@ export function BookingManagement({ showToast }: BookingManagementProps) {
           key={status}
           onClick={() => setFilterStatus(status)}
           className={`px-4 py-2 rounded-lg transition-colors ${
-            filterStatus === status ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            filterStatus === status ? 'bg-emerald-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
           }`}
         >
-          {status.charAt(0).toUpperCase() + status.slice(1)}
+          {status.charAt(0).toUpperCase() + status.slice(1).replace('_', ' ')}
         </button>
       ))}
     </div>
@@ -237,42 +281,37 @@ export function BookingManagement({ showToast }: BookingManagementProps) {
       <table className="min-w-full divide-y divide-gray-200">
         <thead className="bg-gray-50">
           <tr>
-            <th className="px-6 py-3">Booking ID</th>
-            <th className="px-6 py-3">User</th>
-            <th className="px-6 py-3">Package</th>
-            <th className="px-6 py-3">Travel Date</th>
-            <th className="px-6 py-3">Advance Paid</th>
-            <th className="px-6 py-3">UTR / Txn ID</th>
-            <th className="px-6 py-3">Total Amount</th>
-            <th className="px-6 py-3">Status</th>
-            <th className="px-6 py-3">Actions</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Booking ID</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Package</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Advance</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
           </tr>
         </thead>
 
         <tbody className="bg-white divide-y divide-gray-200">
           {filteredBookings.map((booking) => {
             const advancePaid = booking.advance_paid ? Number(booking.advance_paid) : 0;
-            const totalAmount = booking.total_price ? Number(booking.total_price) : 0;
             const displayDate = booking.booking_date || (booking as any).travel_date || null;
 
             return (
-              <tr key={booking.id}>
-                <td className="px-6 py-4">{booking.id?.slice(0, 8)}...</td>
+              <tr key={booking.id} className="hover:bg-gray-50 transition-colors">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{booking.id?.slice(0, 8)}...</td>
                 <td className="px-6 py-4">
-                  {booking.profile?.username || 'Unknown'}
+                  <div className="text-sm font-medium text-gray-900">{booking.profile?.username || (booking as any).name || 'Unknown'}</div>
                   <div className="text-xs text-gray-500">{booking.profile?.email || 'N/A'}</div>
-                  <div className="text-xs text-gray-500">User ID: {booking.user_id}</div>
+                   <div className="text-xs text-gray-500">{(booking as any).phone || booking.profile?.phone || ''}</div>
                 </td>
-                <td className="px-6 py-4">{booking.package?.title || 'N/A'}</td>
-                <td className="px-6 py-4">
+                <td className="px-6 py-4 text-sm text-gray-700">{booking.package?.title || 'N/A'}</td>
+                <td className="px-6 py-4 text-sm text-gray-700">
                   {displayDate ? new Date(displayDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'No Date'}
                 </td>
-                <td className="px-6 py-4">₹{advancePaid.toLocaleString()}</td>
-                <td className="px-6 py-4">{booking.utr_id || '—'}</td>
-                <td className="px-6 py-4">₹{totalAmount.toLocaleString()}</td>
+                <td className="px-6 py-4 text-sm text-gray-700">₹{advancePaid.toLocaleString()}</td>
                 <td className="px-6 py-4">
                   <span
-                    className={`px-3 py-1 rounded-full text-xs ${
+                    className={`px-3 py-1 rounded-full text-xs font-semibold ${
                       booking.status === 'confirmed'
                         ? 'bg-green-100 text-green-800'
                         : booking.status === 'cancelled'
@@ -284,7 +323,7 @@ export function BookingManagement({ showToast }: BookingManagementProps) {
                   </span>
                 </td>
                 <td className="px-6 py-4">
-                  <button onClick={() => setSelectedBooking(booking)} className="text-blue-600">
+                  <button onClick={() => setSelectedBooking(booking)} className="text-emerald-600 hover:text-emerald-800 transition-colors">
                     <Eye className="h-5 w-5" />
                   </button>
                 </td>
@@ -298,75 +337,119 @@ export function BookingManagement({ showToast }: BookingManagementProps) {
 
   {/* Modal */}
   {selectedBooking && (
-    <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl w-full max-w-2xl p-6 shadow-xl">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-xl font-bold text-gray-800">Booking Details</h3>
-          <button onClick={() => setSelectedBooking(null)}>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl relative animate-fade-in-up">
+        <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center z-10">
+           <div>
+            <h3 className="text-2xl font-bold text-gray-800">Booking Details</h3>
+            <p className="text-sm text-gray-500">ID: {selectedBooking.id}</p>
+          </div>
+          <button onClick={() => setSelectedBooking(null)} className="hover:bg-gray-100 p-2 rounded-full transition-colors">
             <XCircle className="h-6 w-6 text-gray-500" />
           </button>
         </div>
 
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="font-medium text-gray-500">User</p>
-              <p>{selectedBooking.profile?.username || 'Unknown'}</p>
-              <p className="text-sm text-gray-500">{selectedBooking.profile?.email || 'N/A'}</p>
-              <p className="text-sm text-gray-500">User ID: {selectedBooking.user_id}</p>
+        <div className="p-6 space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* User Details */}
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h4 className="font-bold text-gray-800 mb-3 border-b pb-2">User Information</h4>
+              <div className="space-y-2">
+                <p><span className="text-gray-500">Name:</span> <span className="font-semibold">{selectedBooking.profile?.username || (selectedBooking as any).name || 'Unknown'}</span></p>
+                <p><span className="text-gray-500">Email:</span> {selectedBooking.profile?.email || 'N/A'}</p>
+                <p><span className="text-gray-500">Phone:</span> {(selectedBooking as any).phone || selectedBooking.profile?.phone || 'N/A'}</p>
+                <p><span className="text-gray-500">User ID:</span> {selectedBooking.user_id}</p>
+              </div>
             </div>
-            <div>
-              <p className="font-medium text-gray-500">Package</p>
-              <p>{selectedBooking.package?.title || 'N/A'}</p>
-            </div>
-            <div>
-              <p className="font-medium text-gray-500">Travel Date</p>
-              <p>
-                {(selectedBooking.booking_date || (selectedBooking as any).travel_date)
-                  ? new Date(selectedBooking.booking_date || (selectedBooking as any).travel_date).toLocaleDateString('en-IN', {
-                      day: '2-digit',
-                      month: 'short',
-                      year: 'numeric',
-                    })
-                  : 'No Date'}
-              </p>
+
+            {/* Package Details */}
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h4 className="font-bold text-gray-800 mb-3 border-b pb-2">Package Information</h4>
+              <div className="space-y-2">
+                <p><span className="text-gray-500">Package:</span> <span className="font-semibold">{selectedBooking.package?.title || 'N/A'}</span></p>
+                <p><span className="text-gray-500">Date:</span> {formatDate(selectedBooking.booking_date || (selectedBooking as any).travel_date)}</p>
+                <p><span className="text-gray-500">Price Per Head:</span> ₹{selectedBooking.package?.price_per_head || selectedBooking.package?.price || 0}</p>
+              </div>
             </div>
           </div>
 
-          <div className="border-t pt-4">
-            <p className="text-lg font-bold">Total Amount: ₹{(selectedBooking.total_price ?? 0).toLocaleString()}</p>
-            <p className="text-blue-600 font-semibold">Advance Paid: ₹{(selectedBooking.advance_paid ?? 0).toLocaleString()}</p>
+          {/* Members (Full Data) */}
+          {(selectedBooking as any).members && (selectedBooking as any).members.length > 0 && (
+             <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
+              <h4 className="font-bold text-gray-800 mb-3">Members ({ (selectedBooking as any).members.length })</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto">
+                {(selectedBooking as any).members.map((m: any, idx: number) => (
+                  <div key={idx} className="bg-white p-2 rounded shadow-sm text-sm">
+                    <span className="font-medium">{idx + 1}. {m.name}</span> <span className="text-gray-500">({m.age} yrs)</span>
+                  </div>
+                ))}
+              </div>
+             </div>
+          )}
 
-            {selectedBooking.utr_id && <p className="text-gray-700">UTR / Txn ID: {selectedBooking.utr_id}</p>}
+          {/* Admin Notes */}
+          <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-100">
+             <div className="flex justify-between items-center mb-2">
+                <h4 className="font-bold text-gray-800">Admin Notes</h4>
+                <button onClick={saveAdminNotes} className="flex items-center text-sm bg-yellow-600 text-white px-3 py-1 rounded hover:bg-yellow-700 transition-colors">
+                    <Save className="h-3 w-3 mr-1" /> Save
+                </button>
+             </div>
+             <textarea 
+               value={adminNotes} 
+               onChange={(e) => setAdminNotes(e.target.value)}
+               className="w-full p-2 border rounded resize-y focus:ring-2 focus:ring-yellow-500 focus:outline-none"
+               rows={3}
+               placeholder="Add internal notes here..."
+             />
+          </div>
+
+          <div className="border-t pt-4">
+            <div className="flex justify-between items-center mb-4">
+                 <div>
+                    <p className="text-lg font-bold">Total Amount: ₹{(selectedBooking.total_price ?? 0).toLocaleString()}</p>
+                    <p className="text-emerald-600 font-semibold">Advance Paid: ₹{(selectedBooking.advance_paid ?? 0).toLocaleString()}</p>
+                    {selectedBooking.utr_id && <p className="text-gray-700">UTR: {selectedBooking.utr_id}</p>}
+                 </div>
+                 {/* WhatsApp Confirmation Button */}
+                 {selectedBooking.status === 'confirmed' && (
+                    <button 
+                        onClick={handleWhatsAppConfirmation}
+                        className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg flex items-center shadow-lg transition-all transform hover:scale-105"
+                    >
+                        <MessageCircle className="h-5 w-5 mr-2" />
+                        Send WhatsApp Confirmation
+                    </button>
+                 )}
+            </div>
 
             {selectedBooking.advance_receipt_url && (
               <div className="pt-4">
-                <p className="font-medium text-gray-500">Payment Screenshot:</p>
-                <img
+                <p className="font-medium text-gray-500 mb-2">Payment Screenshot:</p>
+                <div className="relative group">
+                     <img
                   src={getReceiptPublicUrl(selectedBooking.advance_receipt_url) || ''}
                   alt="Payment Screenshot"
-                  className="mt-2 border rounded-lg max-h-60 object-contain"
+                  className="border rounded-lg max-h-96 object-contain shadow-md"
                 />
-                {!getReceiptPublicUrl(selectedBooking.advance_receipt_url) && (
-                  <p className="text-sm text-red-500 mt-2">Receipt not public / not available.</p>
-                )}
+                </div>
               </div>
             )}
           </div>
 
           {/* Payment verify buttons */}
           {selectedBooking.payment_status === 'pending' && (
-            <div className="flex gap-4 pt-4">
+            <div className="flex gap-4 pt-4 border-t">
               <button
                 onClick={() => updateBookingPaymentStatus(selectedBooking.id, 'paid')}
-                className="flex-1 bg-green-600 text-white py-2 rounded-lg flex items-center justify-center"
+                className="flex-1 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white py-3 rounded-lg flex items-center justify-center font-bold shadow-lg transition-all"
               >
                 <CheckCircle className="h-5 w-5 mr-2" />
                 Confirm Payment
               </button>
               <button
                 onClick={() => updateBookingPaymentStatus(selectedBooking.id, 'not_paid')}
-                className="flex-1 bg-red-600 text-white py-2 rounded-lg flex items-center justify-center"
+                className="flex-1 bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white py-3 rounded-lg flex items-center justify-center font-bold shadow-lg transition-all"
               >
                 <XCircle className="h-5 w-5 mr-2" />
                 Reject Payment
@@ -376,26 +459,26 @@ export function BookingManagement({ showToast }: BookingManagementProps) {
 
           {/* Booking status confirm / cancel */}
           {selectedBooking.status === 'pending' && selectedBooking.payment_status === 'paid' && (
-            <div className="flex gap-4 pt-4">
+            <div className="flex gap-4 pt-4 border-t">
               <button
                 onClick={() => updateBookingStatus(selectedBooking.id, 'confirmed')}
-                className="flex-1 bg-green-600 text-white py-2 rounded-lg flex items-center justify-center"
+                className="flex-1 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white py-3 rounded-lg flex items-center justify-center font-bold shadow-lg transition-all"
               >
                 <CheckCircle className="h-5 w-5 mr-2" />
                 Confirm Booking
               </button>
 
-              <div className="flex-1 flex flex-col">
+              <div className="flex-1 flex flex-col gap-2">
                 <input
                   type="text"
-                  placeholder="Cancellation reason"
+                  placeholder="Reason for cancellation..."
                   value={cancellationReason}
                   onChange={(e) => setCancellationReason(e.target.value)}
-                  className="border rounded-lg px-3 py-2 mb-2 w-full"
+                  className="border rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-red-500 focus:outline-none"
                 />
                 <button
                   onClick={() => updateBookingStatus(selectedBooking.id, 'cancelled')}
-                  className="bg-red-600 text-white py-2 rounded-lg flex items-center justify-center w-full"
+                  className="bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white py-3 rounded-lg flex items-center justify-center font-bold shadow-lg transition-all"
                 >
                   <XCircle className="h-5 w-5 mr-2" />
                   Cancel Booking

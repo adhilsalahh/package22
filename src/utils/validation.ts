@@ -34,15 +34,21 @@ export function validatePassword(password: string): ValidationResult {
 }
 
 export function validatePhone(phone: string): ValidationResult {
-  const phoneRegex = /^[+]?[(]?[0-9]{1,4}[)]?[-\s./0-9]{8,}$/;
+  const phoneRegex = /^[0-9]{10}$/; // Only 10 digits allowed
+
   if (!phone) {
     return { isValid: false, error: 'Phone number is required' };
   }
   if (!phoneRegex.test(phone)) {
-    return { isValid: false, error: 'Please enter a valid phone number' };
+    return {
+      isValid: false,
+      error: 'Please enter a valid 10-digit Indian phone number',
+    };
   }
+
   return { isValid: true };
 }
+
 
 export function validateUsername(username: string): ValidationResult {
   if (!username) {
@@ -99,7 +105,7 @@ export function getPasswordStrength(password: string): {
   if (password.length >= 12) score++;
   if (/[A-Z]/.test(password)) score++;
   if (/[a-z]/.test(password)) score++;
-  if (/[0-9]/.test(password)) score++;
+  if (/[0-10]/.test(password)) score++;
   if (/[^A-Za-z0-9]/.test(password)) score++;
 
   if (score <= 2) return { strength: 'weak', score };

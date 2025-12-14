@@ -56,7 +56,7 @@ useEffect(() => {
 
   const upiId =
     paymentSettings.find((s) => s.setting_key === "upi_id")?.setting_value ||
-    "8129464465@okaxis";
+    "asifalipa9934-1@okicici";
 
   const payeeName =
     paymentSettings.find((s) => s.setting_key === "payee_name")?.setting_value ||
@@ -176,14 +176,19 @@ useEffect(() => {
       {/* Upload form */}
       <form onSubmit={handleSubmit} className="space-y-4">
 
-        <input
-          type="text"
-          value={utr}
-          onChange={(e) => setUtr(e.target.value)}
-          className="w-full border p-2 rounded"
-          placeholder="Enter UTR / Transaction ID"
-          required
-        />
+       <input
+  type="text"
+  value={utr}
+  maxLength={12}
+  onChange={(e) => {
+    // remove non-digits
+    const onlyNumbers = e.target.value.replace(/\D/g, "");
+    setUtr(onlyNumbers);
+  }}
+  className="w-full border p-2 rounded"
+  placeholder="Enter 12-digit UTR Number"
+  required
+/>
 
         <input
           type="file"

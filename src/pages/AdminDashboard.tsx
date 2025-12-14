@@ -8,11 +8,13 @@ import { BookingManagement } from '../components/admin/BookingManagement';
 import { UserManagement } from '../components/admin/UserManagement';
 import { PaymentReport } from '../components/admin/PaymentReport';
 import { Toast } from '../components/Toast';
+import{SoldOutDatesManagement}from'../components/admin/SoldOutDatesManagement'
+
 
 export function AdminDashboard() {
   const navigate = useNavigate();
   const { signOut, profile } = useAuth();
-  const [activeTab, setActiveTab] = useState<'packages' | 'bookings' | 'users' | 'reports'>('packages');
+  const [activeTab, setActiveTab] = useState<'packages' | 'bookings' | 'users' | 'reports' | 'soldout'>('packages');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   const showToast = (message: string, type: 'success' | 'error') => {
@@ -34,6 +36,7 @@ export function AdminDashboard() {
     { id: 'bookings' as const, label: 'Bookings', icon: BookOpen },
     { id: 'users' as const, label: 'Users', icon: Users },
     { id: 'reports' as const, label: 'Reports', icon: Settings },
+    { id: 'soldout' as const, label: 'Sold-Out Dates', icon: BookOpen },
   ];
 
   return (
@@ -97,6 +100,8 @@ export function AdminDashboard() {
         {activeTab === 'bookings' && <BookingManagement showToast={showToast} />}
         {activeTab === 'users' && <UserManagement showToast={showToast} />}
         {activeTab === 'reports' && <PaymentReport showToast={showToast} />}
+        {activeTab === 'soldout' && <SoldOutDatesManagement showToast={showToast} />}
+
       </div>
 
       {toast && (

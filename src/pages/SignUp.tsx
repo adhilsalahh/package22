@@ -140,7 +140,7 @@ export function Signup() {
               <UserPlus className="h-8 w-8 text-blue-600" />
             </div>
           </div>
-          <h1 className="text-3xl font-bold text-gray-800 text-center mb-2">Create Account</h1>
+          <h1 className="text-3xl font-bold text-gray-800 text-center mb-2">Account</h1>
           <p className="text-gray-600 text-center mb-8">Join us and start booking your adventures</p>
 
           <form onSubmit={handlePreview}>
