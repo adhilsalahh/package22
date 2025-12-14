@@ -162,12 +162,15 @@ const BookingPage = () => {
       ];
       await supabase.from('booking_members').insert(membersToInsert);
 
+
+
       // Construct detailed message
       const message = `*New Booking Request* 🏕️\n\n` +
         `*Package:* ${pkg.title}\n` +
         `*Date:* ${selectedDate}\n` +
         `*Members:* ${numberOfMembers}\n` +
         `*Guest Name:* ${member1.name}\n` +
+        `*Guest Phone:* ${member1.phone}\n` +
         `--------------------------------\n` +
         `*Total Price:* ₹${totalPrice}\n` +
         `*Advance Required:* ₹${advanceTotal}\n` +
@@ -179,12 +182,9 @@ const BookingPage = () => {
       const phoneNumber = "917592049934";
       const url = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
 
-      // Navigate to bookings page to show it's "placed" or just open WA?
-      // User likely wants to see it in their "My Bookings" too.
-      // We will redirect cleanly.
-
-      window.open(url, '_blank');
-      navigate('/bookings'); // Send them to my bookings where they can see it's pending
+      // Use location.href to ensure mobile deep linking works and isn't blocked as a popup
+      // This will redirect the current page to WhatsApp
+      window.location.href = url;
 
     } catch (err: any) {
       console.error(err);
@@ -254,17 +254,7 @@ const BookingPage = () => {
       const { error: membersError } = await supabase.from('booking_members').insert(membersToInsert);
       if (membersError) throw membersError;
 
-      // Ensure we don't double insert sold-out dates if multiple people book (race condition possible but ignores constraint usually)
-      // Actually strictly, multiple bookings for same date might be allowed unless it's a 1-group package?
-      // The prompt implies "when a user books a package and the date is sold out". 
-      // If we mark it sold out NOW, no one else can book? 
-      // Assuming 'private trip' logic -> blocking the date.
 
-      // Check if date already exists to avoid error if unique constraint exists
-      await supabase.from('package_soldout_dates').insert({
-        package_id: pkg!.id,
-        soldout_date: selectedDate
-      }).select().maybeSingle();
 
       // Proceed to payment
       navigate(`/payment/${bookingId}`);
