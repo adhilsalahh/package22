@@ -7,7 +7,7 @@ interface AuthContextType {
   user: User | null;
   profile: Profile | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<void>;
+  signIn: (identifier: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, fullName: string, phone: string) => Promise<void>;
   signOut: () => Promise<void>;
   isAdmin: boolean;
@@ -52,7 +52,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   // LOGIN
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (identifier: string, password: string) => {
+    let email = identifier;
+
+    // If identifier doesn't look like an email, try to find the email via RPC
+    if (!identifier.includes('@')) {
+      const { data, error } = await supabase.rpc('get_email_by_identifier', {
+        identifier_input: identifier
+      });
+
+      if (error) {
+        console.error("User lookup failed:", error);
+        throw new Error("Failed to verify user details. Please use email.");
+      }
+
+      if (!data) {
+        throw new Error("No account found with this Name/Phone.");
+      }
+
+      email = data as string;
+    }
+
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
   };

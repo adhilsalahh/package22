@@ -8,13 +8,14 @@ import { BookingManagement } from '../components/admin/BookingManagement';
 import { UserManagement } from '../components/admin/UserManagement';
 import { PaymentReport } from '../components/admin/PaymentReport';
 import { Toast } from '../components/Toast';
-import{SoldOutDatesManagement}from'../components/admin/SoldOutDatesManagement'
+import { SoldOutDatesManagement } from '../components/admin/SoldOutDatesManagement';
+import { SiteSettings } from '../components/admin/SiteSettings';
 
 
 export function AdminDashboard() {
   const navigate = useNavigate();
   const { signOut, profile } = useAuth();
-  const [activeTab, setActiveTab] = useState<'packages' | 'bookings' | 'users' | 'reports' | 'soldout'>('packages');
+  const [activeTab, setActiveTab] = useState<'packages' | 'bookings' | 'users' | 'reports' | 'soldout' | 'settings'>('packages');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   const showToast = (message: string, type: 'success' | 'error') => {
@@ -37,6 +38,7 @@ export function AdminDashboard() {
     { id: 'users' as const, label: 'Users', icon: Users },
     { id: 'reports' as const, label: 'Reports', icon: Settings },
     { id: 'soldout' as const, label: 'Sold-Out Dates', icon: BookOpen },
+    { id: 'settings' as const, label: 'Site Settings', icon: Settings },
   ];
 
   return (
@@ -80,11 +82,10 @@ export function AdminDashboard() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center py-4 border-b-2 transition-colors ${
-                    activeTab === tab.id
-                      ? 'border-blue-600 text-blue-600'
-                      : 'border-transparent text-gray-600 hover:text-gray-800'
-                  }`}
+                  className={`flex items-center py-4 border-b-2 transition-colors ${activeTab === tab.id
+                    ? 'border-blue-600 text-blue-600'
+                    : 'border-transparent text-gray-600 hover:text-gray-800'
+                    }`}
                 >
                   <Icon className="h-5 w-5 mr-2" />
                   {tab.label}
@@ -101,6 +102,7 @@ export function AdminDashboard() {
         {activeTab === 'users' && <UserManagement showToast={showToast} />}
         {activeTab === 'reports' && <PaymentReport showToast={showToast} />}
         {activeTab === 'soldout' && <SoldOutDatesManagement showToast={showToast} />}
+        {activeTab === 'settings' && <SiteSettings />}
 
       </div>
 

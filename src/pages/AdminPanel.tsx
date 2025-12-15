@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import BookingList from '../components/BookingList';
-import { Plus, Edit2, Trash2, Save, X, Calendar } from 'lucide-react';
+import { SiteSettings } from '../components/admin/SiteSettings';
+import { Plus, Edit2, Trash2, Save, X, Calendar, Settings } from 'lucide-react';
 import { Package, ItineraryDay } from '../lib/supabase';
 
 const AdminPanel: React.FC = () => {
   const { packages, bookings, addPackage, updatePackage, deletePackage, addAvailableDate, fetchAvailableDates, availableDates, deleteAvailableDate } = useApp();
-  const [activeTab, setActiveTab] = useState<'bookings' | 'packages' | 'dates'>('bookings');
+  const [activeTab, setActiveTab] = useState<'bookings' | 'packages' | 'dates' | 'settings'>('bookings');
   const [showPackageForm, setShowPackageForm] = useState(false);
   const [editingPackage, setEditingPackage] = useState<Package | null>(null);
   const [selectedPackageForDates, setSelectedPackageForDates] = useState<string>('');
@@ -179,33 +180,40 @@ const AdminPanel: React.FC = () => {
         <div className="flex gap-2 mb-6 flex-wrap">
           <button
             onClick={() => setActiveTab('bookings')}
-            className={`px-6 py-3 rounded-lg font-semibold transition-colors ${
-              activeTab === 'bookings'
+            className={`px-6 py-3 rounded-lg font-semibold transition-colors ${activeTab === 'bookings'
                 ? 'bg-emerald-600 text-white'
                 : 'bg-white text-gray-700 hover:bg-emerald-50'
-            }`}
+              }`}
           >
             Bookings ({bookings.length})
           </button>
           <button
             onClick={() => setActiveTab('packages')}
-            className={`px-6 py-3 rounded-lg font-semibold transition-colors ${
-              activeTab === 'packages'
+            className={`px-6 py-3 rounded-lg font-semibold transition-colors ${activeTab === 'packages'
                 ? 'bg-emerald-600 text-white'
                 : 'bg-white text-gray-700 hover:bg-emerald-50'
-            }`}
+              }`}
           >
             Packages ({packages.length})
           </button>
           <button
             onClick={() => setActiveTab('dates')}
-            className={`px-6 py-3 rounded-lg font-semibold transition-colors ${
-              activeTab === 'dates'
+            className={`px-6 py-3 rounded-lg font-semibold transition-colors ${activeTab === 'dates'
                 ? 'bg-emerald-600 text-white'
                 : 'bg-white text-gray-700 hover:bg-emerald-50'
-            }`}
+              }`}
           >
             Available Dates
+          </button>
+          <button
+            onClick={() => setActiveTab('settings')}
+            className={`px-6 py-3 rounded-lg font-semibold transition-colors flex items-center gap-2 ${activeTab === 'settings'
+                ? 'bg-emerald-600 text-white'
+                : 'bg-white text-gray-700 hover:bg-emerald-50'
+              }`}
+          >
+            <Settings className="h-4 w-4" />
+            Site Settings
           </button>
         </div>
 
@@ -381,6 +389,9 @@ const AdminPanel: React.FC = () => {
             </div>
           </div>
         )}
+
+        {/* SITE SETTINGS TAB */}
+        {activeTab === 'settings' && <SiteSettings />}
       </div>
 
       {showPackageForm && (

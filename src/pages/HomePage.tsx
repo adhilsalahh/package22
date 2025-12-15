@@ -1,47 +1,63 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, MapPin, Users, IndianRupee, MousePointer2, Phone, Mail, MessageCircle, Instagram, Facebook, Send, Mountain, ArrowRight } from 'lucide-react';
+import { Calendar, MapPin, Users, IndianRupee, MousePointer2, Phone, Mail, MessageCircle, Instagram, Send, Mountain, ArrowRight, Facebook } from 'lucide-react';
 import { Package } from '../types';
 import { packageService } from '../services/packageService';
 import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabase';
+
 export const HomePage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [packages, setPackages] = useState<Package[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [currentGalleryIndex, setCurrentGalleryIndex] = useState(0);
+  const [siteSettings, setSiteSettings] = useState<any>(null);
 
   useEffect(() => {
-    loadPackages();
+    loadData();
   }, []);
 
-  const loadPackages = async () => {
+  const loadData = async () => {
     try {
-      const data = await packageService.getAllPackages();
-      setPackages(data);
+      const [packagesData, settingsData] = await Promise.all([
+        packageService.getAllPackages(),
+        supabase.from('site_settings').select('*').limit(1).single()
+      ]);
+      setPackages(packagesData);
+      if (settingsData.data) {
+        setSiteSettings(settingsData.data);
+      }
     } catch (err: any) {
+      console.error(err);
       setError(err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const galleryImages = [
-    { url: '/advanjer2.jpg', title: 'Mountain Trek', description: 'Experience the heights' },
-    { url: '/kolukumalai4.jpg', title: 'Sunrise View', description: 'Breathtaking mornings' },
-    { url: '/advanter 6.jpg', title: 'Jeep Safari', description: 'Thrilling rides' },
-    { url: '/meeshapulimala_header11.jpg', title: 'Meeshapulimala', description: 'Above the clouds' },
-    { url: '/meeshapulimala_header1.jpg', title: 'Nature Trails', description: 'Walk into the wild' },
-    { url: '/kolukumalai7.jpg', title: 'Campfire', description: 'Under the stars' },
+  // Fallback defaults matching your original design
+  const defaultGallery = [
+    { url: '/advanjer2.jpg', },
+    { url: '/kolukumalai4.jpg', },
+    { url: '/advanter 6.jpg', },
+    { url: '/meeshapulimala_header11.jpg', },
+    { url: '/meeshapulimala_header1.jpg', },
+    { url: '/kolukumalai7.jpg', },
   ];
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentGalleryIndex((prev) => (prev + 1) % galleryImages.length);
-    }, 4000);
-    return () => clearInterval(interval);
-  }, []);
+  const galleryItems = siteSettings?.gallery_images && siteSettings.gallery_images.length > 0
+    ? siteSettings.gallery_images
+    : defaultGallery;
+
+  const heroImage = siteSettings?.hero_image_url || '/header image.jpg';
+
+  // Dynamic Styles
+  const customStyle = {
+    '--primary': siteSettings?.primary_color || '#059669', // emerald-600
+    '--secondary': siteSettings?.secondary_color || '#0d9488', // teal-600
+    fontFamily: siteSettings?.font_family || 'Inter, sans-serif'
+  } as React.CSSProperties;
 
   if (loading) {
     return (
@@ -65,14 +81,14 @@ export const HomePage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white" style={customStyle}>
       {/* ✅ SIGNUP WARNING BANNER */}
       {!user && (
         <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 text-center">
           <p className="font-medium text-lg">
             ⚠️ Bookings can only be made after signing up. Please <button
               onClick={() => navigate('/login')}
-              className="underline text-emerald-600 font-semibold ml-1"
+              className="underline text-[var(--primary)] font-semibold ml-1"
             >
               Sign Up / Log In
             </button>
@@ -83,17 +99,24 @@ export const HomePage = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div className="space-y-8 animate-fade-in-up">
-              <div className="inline-flex items-center space-x-2 bg-emerald-100 text-emerald-700 px-4 py-2 rounded-full text-sm font-medium">
-              </div>
+
+
               <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-gray-900 leading-tight">
-                Your Next
-                <span className="block text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-600">
-                  Adventure
-                </span>
-                Starts Here
+                {siteSettings?.hero_title ? (
+                  siteSettings.hero_title
+                ) : (
+                  <>
+                    Your Next
+                    <span className="block text-transparent bg-clip-text bg-gradient-to-r from-[var(--primary)] to-[var(--secondary)]">
+                      Adventure
+                    </span>
+                    Starts Here
+                  </>
+                )}
               </h1>
+
               <p className="text-xl text-gray-600 leading-relaxed">
-                Embark on unforgettable trekking experiences across stunning landscapes. Book your perfect adventure today and create memories that last a lifetime.
+                {siteSettings?.hero_subtitle || 'Embark on unforgettable trekking experiences across stunning landscapes. Book your perfect adventure today and create memories that last a lifetime.'}
               </p>
               <div className="flex flex-wrap gap-4">
                 <button
@@ -101,7 +124,7 @@ export const HomePage = () => {
                     const packagesSection = document.getElementById('packages');
                     packagesSection?.scrollIntoView({ behavior: 'smooth' });
                   }}
-                  className="group px-8 py-4 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl font-semibold hover:shadow-2xl hover:scale-105 transition-all duration-300 flex items-center space-x-2"
+                  className="group px-8 py-4 bg-gradient-to-r from-[var(--primary)] to-[var(--secondary)] text-white rounded-xl font-semibold hover:shadow-2xl hover:scale-105 transition-all duration-300 flex items-center space-x-2"
                 >
                   <span>Explore Packages</span>
                   <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
@@ -111,7 +134,7 @@ export const HomePage = () => {
                     const contactSection = document.getElementById('contact');
                     contactSection?.scrollIntoView({ behavior: 'smooth' });
                   }}
-                  className="px-8 py-4 bg-white text-emerald-700 border-2 border-emerald-600 rounded-xl font-semibold hover:bg-emerald-50 hover:scale-105 transition-all duration-300"
+                  className="px-8 py-4 bg-white text-[var(--primary)] border-2 border-[var(--primary)] rounded-xl font-semibold hover:bg-emerald-50 hover:scale-105 transition-all duration-300"
                 >
                   Contact Us
                 </button>
@@ -119,10 +142,10 @@ export const HomePage = () => {
             </div>
             <div className="relative animate-fade-in-right">
               <div className="relative group">
-                <div className="absolute -inset-4 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-3xl opacity-20 blur-2xl group-hover:opacity-30 transition-opacity"></div>
+                <div className="absolute -inset-4 bg-gradient-to-r from-[var(--primary)] to-[var(--secondary)] rounded-3xl opacity-20 blur-2xl group-hover:opacity-30 transition-opacity"></div>
                 <div className="relative bg-white rounded-3xl shadow-2xl overflow-hidden transform hover:scale-105 transition-transform duration-500">
                   <img
-                    src="/header image.jpg"
+                    src={heroImage}
                     alt="Adventure"
                     className="w-full h-64 sm:h-80 md:h-96 lg:h-[500px] object-cover object-center"
                   />
@@ -180,21 +203,21 @@ export const HomePage = () => {
                     </div>
                   </div>
                   <div className="p-6">
-                    <h3 className="text-2xl font-bold text-gray-900 mb-3 group-hover:text-emerald-600 transition-colors">{pkg.title}</h3>
+                    <h3 className="text-2xl font-bold text-gray-900 mb-3 group-hover:text-[var(--primary)] transition-colors">{pkg.title}</h3>
                     <p className="text-gray-600 mb-4 line-clamp-2">{pkg.description}</p>
                     <div className="flex items-center justify-between mb-4 pb-4 border-b">
                       <div className="flex items-center text-gray-700">
-                        <Calendar className="h-4 w-4 mr-2 text-emerald-600" />
+                        <Calendar className="h-4 w-4 mr-2 text-[var(--primary)]" />
                         <span className="text-sm font-medium">{pkg.duration_days} Days</span>
                       </div>
                       <div className="flex items-center text-gray-700">
-                        <Users className="h-4 w-4 mr-2 text-emerald-600" />
+                        <Users className="h-4 w-4 mr-2 text-[var(--primary)]" />
                         <span className="text-sm font-medium">Max {pkg.max_capacity}</span>
                       </div>
                     </div>
                     <div className="flex items-center justify-between">
                       <div>
-                        <div className="flex items-center text-3xl font-bold text-emerald-600">
+                        <div className="flex items-center text-3xl font-bold text-[var(--primary)]">
                           <IndianRupee className="h-7 w-7" />
                           <span>{pkg.price_per_head}</span>
                         </div>
@@ -205,7 +228,7 @@ export const HomePage = () => {
                           e.stopPropagation();
                           navigate(`/package/${pkg.id}`);
                         }}
-                        className="px-6 py-3 bg-emerald-600 text-white rounded-xl font-semibold hover:bg-emerald-700 hover:scale-105 transition-all duration-300 flex items-center space-x-2"
+                        className="px-6 py-3 bg-[var(--primary)] text-white rounded-xl font-semibold hover:bg-emerald-700 hover:scale-105 transition-all duration-300 flex items-center space-x-2"
                       >
                         <span>Book Now</span>
                         <ArrowRight className="h-4 w-4" />
@@ -232,7 +255,7 @@ export const HomePage = () => {
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             <div className="group bg-gradient-to-br from-emerald-50 to-teal-50 p-8 rounded-2xl hover:shadow-xl transition-all duration-300 hover:-translate-y-2">
-              <div className="w-16 h-16 bg-gradient-to-br from-emerald-600 to-teal-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+              <div className="w-16 h-16 bg-gradient-to-br from-[var(--primary)] to-[var(--secondary)] rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                 <Mountain className="h-8 w-8 text-white" />
               </div>
               <h3 className="text-2xl font-bold text-gray-900 mb-3">Official Tourism Promoter</h3>
@@ -242,7 +265,7 @@ export const HomePage = () => {
             </div>
 
             <div className="group bg-gradient-to-br from-emerald-50 to-teal-50 p-8 rounded-2xl hover:shadow-xl transition-all duration-300 hover:-translate-y-2">
-              <div className="w-16 h-16 bg-gradient-to-br from-emerald-600 to-teal-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+              <div className="w-16 h-16 bg-gradient-to-br from-[var(--primary)] to-[var(--secondary)] rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                 <MapPin className="h-8 w-8 text-white" />
               </div>
               <h3 className="text-2xl font-bold text-gray-900 mb-3">Curated Trekking Adventures</h3>
@@ -252,7 +275,7 @@ export const HomePage = () => {
             </div>
 
             <div className="group bg-gradient-to-br from-emerald-50 to-teal-50 p-8 rounded-2xl hover:shadow-xl transition-all duration-300 hover:-translate-y-2">
-              <div className="w-16 h-16 bg-gradient-to-br from-emerald-600 to-teal-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+              <div className="w-16 h-16 bg-gradient-to-br from-[var(--primary)] to-[var(--secondary)] rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                 <Users className="h-8 w-8 text-white" />
               </div>
               <h3 className="text-2xl font-bold text-gray-900 mb-3">Expert Local Guides</h3>
@@ -262,7 +285,7 @@ export const HomePage = () => {
             </div>
 
             <div className="group bg-gradient-to-br from-emerald-50 to-teal-50 p-8 rounded-2xl hover:shadow-xl transition-all duration-300 hover:-translate-y-2">
-              <div className="w-16 h-16 bg-gradient-to-br from-emerald-600 to-teal-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+              <div className="w-16 h-16 bg-gradient-to-br from-[var(--primary)] to-[var(--secondary)] rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                 <Users className="h-8 w-8 text-white" />
               </div>
               <h3 className="text-2xl font-bold text-gray-900 mb-3">Small Group Experiences</h3>
@@ -272,7 +295,7 @@ export const HomePage = () => {
             </div>
 
             <div className="group bg-gradient-to-br from-emerald-50 to-teal-50 p-8 rounded-2xl hover:shadow-xl transition-all duration-300 hover:-translate-y-2">
-              <div className="w-16 h-16 bg-gradient-to-br from-emerald-600 to-teal-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+              <div className="w-16 h-16 bg-gradient-to-br from-[var(--primary)] to-[var(--secondary)] rounded-2xl flex items-center justify-center mb-6 group-hover:scale-100 transition-transform">
                 <Calendar className="h-8 w-8 text-white" />
               </div>
               <h3 className="text-2xl font-bold text-gray-900 mb-3">Hassle-Free Planning</h3>
@@ -282,7 +305,7 @@ export const HomePage = () => {
             </div>
 
             <div className="group bg-gradient-to-br from-emerald-50 to-teal-50 p-8 rounded-2xl hover:shadow-xl transition-all duration-300 hover:-translate-y-2">
-              <div className="w-16 h-16 bg-gradient-to-br from-emerald-600 to-teal-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+              <div className="w-16 h-16 bg-gradient-to-br from-[var(--primary)] to-[var(--secondary)] rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                 <Mountain className="h-8 w-8 text-white" />
               </div>
               <h3 className="text-2xl font-bold text-gray-900 mb-3">Safety First Approach</h3>
@@ -305,7 +328,7 @@ export const HomePage = () => {
             </p>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-            {galleryImages.map((image, index) => (
+            {galleryItems.map((image: any, index: number) => (
               <div
                 key={index}
                 className="group relative h-48 sm:h-56 md:h-64 lg:h-72 rounded-2xl overflow-hidden cursor-pointer transform hover:scale-105 transition-all duration-500"
@@ -314,14 +337,14 @@ export const HomePage = () => {
                 }}
               >
                 <img
-                  src={image.url}
-                  alt={image.title}
+                  src={image.image_url || image.url}
+                  alt={image.title || 'Adventure Image'}
                   className="w-full h-full object-cover object-center group-hover:scale-110 transition-transform duration-700"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-60 group-hover:opacity-90 transition-opacity"></div>
                 <div className="absolute bottom-0 left-0 right-0 p-6 transform translate-y-2 group-hover:translate-y-0 transition-transform">
-                  <h3 className="text-xl font-bold mb-1">{image.title}</h3>
-                  <p className="text-sm text-gray-300">{image.description}</p>
+                  <h3 className="text-xl font-bold mb-1">{image.title || ''}</h3>
+                  <p className="text-sm text-gray-300">{image.description || ''}</p>
                 </div>
               </div>
             ))}
@@ -345,8 +368,8 @@ export const HomePage = () => {
                 <h3 className="text-2xl font-bold text-gray-900 mb-6">Contact Information</h3>
                 <div className="space-y-6">
                   <div className="flex items-start space-x-4 group cursor-pointer hover:translate-x-2 transition-transform">
-                    <div className="flex-shrink-0 w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center group-hover:bg-emerald-600 transition-colors">
-                      <Phone className="h-6 w-6 text-emerald-600 group-hover:text-white transition-colors" />
+                    <div className="flex-shrink-0 w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center group-hover:bg-[var(--primary)] transition-colors">
+                      <Phone className="h-6 w-6 text-[var(--primary)] group-hover:text-white transition-colors" />
                     </div>
                     <div>
                       <h4 className="font-semibold text-gray-900 mb-1">Phone</h4>
@@ -355,8 +378,8 @@ export const HomePage = () => {
                     </div>
                   </div>
                   <div className="flex items-start space-x-4 group cursor-pointer hover:translate-x-2 transition-transform">
-                    <div className="flex-shrink-0 w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center group-hover:bg-emerald-600 transition-colors">
-                      <Mail className="h-6 w-6 text-emerald-600 group-hover:text-white transition-colors" />
+                    <div className="flex-shrink-0 w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center group-hover:bg-[var(--primary)] transition-colors">
+                      <Mail className="h-6 w-6 text-[var(--primary)] group-hover:text-white transition-colors" />
                     </div>
                     <div>
                       <h4 className="font-semibold text-gray-900 mb-1">Email</h4>
@@ -365,8 +388,8 @@ export const HomePage = () => {
                     </div>
                   </div>
                   <div className="flex items-start space-x-4 group cursor-pointer hover:translate-x-2 transition-transform">
-                    <div className="flex-shrink-0 w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center group-hover:bg-emerald-600 transition-colors">
-                      <MapPin className="h-6 w-6 text-emerald-600 group-hover:text-white transition-colors" />
+                    <div className="flex-shrink-0 w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center group-hover:bg-[var(--primary)] transition-colors">
+                      <MapPin className="h-6 w-6 text-[var(--primary)] group-hover:text-white transition-colors" />
                     </div>
                     <div>
                       <h4 className="font-semibold text-gray-900 mb-1">Address</h4>
@@ -435,7 +458,7 @@ export const HomePage = () => {
                 </div>
                 <button
                   type="submit"
-                  className="w-full px-8 py-4 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl font-semibold hover:shadow-2xl hover:scale-105 transition-all duration-300 flex items-center justify-center space-x-2"
+                  className="w-full px-8 py-4 bg-gradient-to-r from-[var(--primary)] to-[var(--secondary)] text-white rounded-xl font-semibold hover:shadow-2xl hover:scale-105 transition-all duration-300 flex items-center justify-center space-x-2"
                 >
                   <span>Send Message</span>
                   <Send className="h-5 w-5" />
@@ -456,11 +479,11 @@ export const HomePage = () => {
                   onClick={() => navigate('/')}
                 >
                   <img
-                    src="/Va oru trippadikkam.jpg"  // ✅ correct way for public folder
+                    src={siteSettings?.header_logo_url || "/Va oru trippadikkam.jpg"}
                     alt="Va Oru Trippadikkam Logo"
                     className="h-10 w-auto rounded-md shadow-sm transition-transform duration-300 group-hover:scale-110"
                   />
-                  <span className="ml-3 text-lg font-bold text-white group-hover:text-emerald-600 transition-colors">
+                  <span className="ml-3 text-lg font-bold text-white group-hover:text-[var(--primary)] transition-colors">
                     Va Oru Trippadikkam
                   </span>
                 </div>

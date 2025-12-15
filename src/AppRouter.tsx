@@ -13,7 +13,7 @@ import BookingPage from "./pages/BookingPage";
 import PaymentPage from "./pages/PaymentPage";
 import RemainingPaymentPage from "./pages/RemainingPaymentPage";
 import UserBookings from "./pages/UserBookings";
-import Sitesettings from "./pages/SiteSettings"
+
 
 
 // ------------------ USER PROTECTED ROUTE ------------------
@@ -88,7 +88,7 @@ export default function AppRouter() {
           <Route path="/payment/:id" element={<ProtectedRoute requireAuth><PaymentPage /></ProtectedRoute>} />
           <Route path="/remaining-payment/:id" element={<ProtectedRoute requireAuth><RemainingPaymentPage /></ProtectedRoute>} />
           <Route path="/bookings" element={<ProtectedRoute requireAuth><UserBookings /></ProtectedRoute>} />
-           <Route path="/s" element={<ProtectedRoute requireAuth><UserBookings /></ProtectedRoute>} />
+          <Route path="/s" element={<ProtectedRoute requireAuth><UserBookings /></ProtectedRoute>} />
 
           {/* Public Routes */}
           <Route path="/contact" element={<Contact />} />
