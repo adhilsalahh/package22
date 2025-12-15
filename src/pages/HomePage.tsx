@@ -5,6 +5,7 @@ import { Package } from '../types';
 import { packageService } from '../services/packageService';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import { SEO } from '../components/SEO';
 
 export const HomePage = () => {
   const navigate = useNavigate();
@@ -82,6 +83,12 @@ export const HomePage = () => {
 
   return (
     <div className="min-h-screen bg-white" style={customStyle}>
+      <SEO
+        title="Kolukkumalai Packages in Munnar | Best Trekking Experience"
+        description="Book the best Kolukkumalai packages in Munnar. Experience sunrise treks, jeep safaris, and camping at Kolukkumalai with the official tourism promoter."
+        keywords="Kolukkumalai packages, Munnar trekking, Kolukkumalai sunrise, jeep safari munnar, camping in munnar, adventure tourism kerala"
+        url="/"
+      />
       {/* ✅ SIGNUP WARNING BANNER */}
       {!user && (
         <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 text-center">

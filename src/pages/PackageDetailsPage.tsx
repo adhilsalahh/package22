@@ -12,6 +12,7 @@ import {
 import { Package } from '../types';
 import { packageService } from '../services/packageService';
 import { useAuth } from '../contexts/AuthContext';
+import { SEO } from '../components/SEO';
 
 interface PackageDetailsPageProps {
   packageId: string;
@@ -77,13 +78,20 @@ export const PackageDetailsPage = ({ packageId, onNavigate }: PackageDetailsPage
   };
 
   const handleWhatsAppContact = () => {
-    const message = Hi, I'm interested in booking ${pkg.title}. Can you provide more details?;
-    const whatsappUrl = https://wa.me/${pkg.contact_info?.phone}?text=${encodeURIComponent(message)};
+    const message = `Hi, I'm interested in booking ${pkg.title}. Can you provide more details?`;
+    const whatsappUrl = `https://wa.me/${pkg.contact_info?.phone}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <SEO
+        title={`${pkg.title} | ${pkg.destination} Trekking Package`}
+        description={`${(pkg.description || '').substring(0, 160)}... Book ${pkg.title} in ${pkg.destination}. Price: ₹${pkg.price_per_head}. Duration: ${pkg.duration_days} days.`}
+        keywords={`${pkg.title}, ${pkg.destination} trekking, ${pkg.destination} packages, trekking in ${pkg.destination}, adventure tourism ${pkg.destination}`}
+        image={images[0]}
+        url={`/package/${pkg.id}`}
+      />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <button
           onClick={() => onNavigate('home')}
@@ -119,9 +127,8 @@ export const PackageDetailsPage = ({ packageId, onNavigate }: PackageDetailsPage
                     <button
                       key={index}
                       onClick={() => setCurrentImageIndex(index)}
-                      className={w-2 h-2 rounded-full transition-colors ${
-                        index === currentImageIndex ? 'bg-white' : 'bg-white/50'
-                      }}
+                      className={`w-2 h-2 rounded-full transition-colors ${index === currentImageIndex ? 'bg-white' : 'bg-white/50'
+                        }`}
                     />
                   ))}
                 </div>

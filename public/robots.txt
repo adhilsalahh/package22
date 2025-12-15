@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://vaorutrippadikkam.com/sitemap.xml
