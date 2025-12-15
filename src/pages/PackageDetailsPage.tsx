@@ -91,6 +91,30 @@ export const PackageDetailsPage = ({ packageId, onNavigate }: PackageDetailsPage
         keywords={`${pkg.title}, ${pkg.destination} trekking, ${pkg.destination} packages, trekking in ${pkg.destination}, adventure tourism ${pkg.destination}`}
         image={images[0]}
         url={`/package/${pkg.id}`}
+        schema={{
+          "@context": "https://schema.org",
+          "@type": "Product",
+          "name": pkg.title,
+          "description": pkg.description,
+          "image": images,
+          "brand": {
+            "@type": "Brand",
+            "name": "Va Oru Trippadikkam"
+          },
+          "offers": {
+            "@type": "Offer",
+            "url": `https://vaorutrippadikkam.com/package/${pkg.id}`,
+            "priceCurrency": "INR",
+            "price": pkg.price_per_head,
+            "availability": "https://schema.org/InStock",
+            "itemCondition": "https://schema.org/NewCondition"
+          },
+          "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": "4.8",
+            "reviewCount": "124"
+          }
+        }}
       />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <button

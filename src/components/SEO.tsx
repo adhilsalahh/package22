@@ -6,9 +6,10 @@ interface SEOProps {
     keywords?: string;
     image?: string;
     url?: string;
+    schema?: object;
 }
 
-export const SEO = ({ title, description, keywords, image, url }: SEOProps) => {
+export const SEO = ({ title, description, keywords, image, url, schema }: SEOProps) => {
     const siteTitle = "Va Oru Trippadikkam";
     const defaultImage = "/header image.jpg";
     const siteUrl = "https://vaorutrippadikkam.com"; // Replace with actual domain when live
@@ -38,6 +39,13 @@ export const SEO = ({ title, description, keywords, image, url }: SEOProps) => {
             <meta property="twitter:title" content={fullTitle} />
             <meta property="twitter:description" content={description} />
             <meta property="twitter:image" content={fullImage} />
+
+            {/* Structured Data (JSON-LD) */}
+            {schema && (
+                <script type="application/ld+json">
+                    {JSON.stringify(schema)}
+                </script>
+            )}
         </Helmet>
     );
 };
