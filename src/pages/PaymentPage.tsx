@@ -6,11 +6,16 @@ import { CheckCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 
+interface PaymentSettings {
+  setting_key: string;
+  setting_value: string;
+}
+
 export default function AdvancePaymentPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [paymentSettings, setPaymentSettings] = useState<PaymentSettings[]>([]);
- const { user } = useAuth();
+  const { user } = useAuth();
   const [booking, setBooking] = useState<any>(null);
   const [qr, setQr] = useState('');
   const [loading, setLoading] = useState(false);
@@ -49,27 +54,27 @@ export default function AdvancePaymentPage() {
   // ==========================
   // Generate QR Code
   // ==========================
-useEffect(() => {
-  if (!booking) return;
+  useEffect(() => {
+    if (!booking) return;
 
-  const amount = Number(booking.advance_amount) || 0;
+    const amount = Number(booking.advance_amount) || 0;
 
-  const upiId =
-    paymentSettings.find((s) => s.setting_key === "upi_id")?.setting_value ||
-    "asifalipa9934-1@okicici";
+    const upiId =
+      paymentSettings.find((s) => s.setting_key === "upi_id")?.setting_value ||
+      "asifalipa9934-1@okicici";
 
-  const payeeName =
-    paymentSettings.find((s) => s.setting_key === "payee_name")?.setting_value ||
-    "Va Oru Trippadikkam";
+    const payeeName =
+      paymentSettings.find((s) => s.setting_key === "payee_name")?.setting_value ||
+      "Va Oru Trippadikkam";
 
-  const upiLink = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(
-    payeeName
-  )}&am=${amount}&cu=INR&tn=Advance Payment for Booking ${booking.id}`;
+    const upiLink = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(
+      payeeName
+    )}&am=${amount}&cu=INR&tn=Advance Payment for Booking ${booking.id}`;
 
-  QRCode.toDataURL(upiLink)
-    .then(setQr)
-    .catch((err) => console.error(err));
-}, [booking, paymentSettings]);
+    QRCode.toDataURL(upiLink)
+      .then(setQr)
+      .catch((err) => console.error(err));
+  }, [booking, paymentSettings]);
 
   // ==========================
   // Upload Receipt
@@ -139,20 +144,25 @@ useEffect(() => {
     }
 
     setLoading(false);
+
+    // Redirect to My Bookings after 2s
+    setTimeout(() => {
+      navigate('/bookings');
+    }, 2000);
   };
 
   if (!booking) return <p>Loading…</p>;
 
   return (
     <div className="max-w-lg mx-auto p-4">
-      
+
       <h1 className="text-2xl font-bold mb-4">Advance Payment</h1>
 
       {/* Package Info */}
       <div className="p-4 bg-gray-100 rounded-xl mb-4">
         <p><strong>Package:</strong> {booking.package?.title || 'Package'}</p>
-  <p><strong>Travel Date:</strong> {booking.booking_date}</p>
-  <p><strong>Total:</strong> ₹{booking.total_price}</p>
+        <p><strong>Travel Date:</strong> {booking.booking_date}</p>
+        <p><strong>Total:</strong> ₹{booking.total_price}</p>
         <p><strong>Members:</strong> {booking.number_of_members}</p>
         <p><strong>Advance Amount:</strong> ₹{booking.advance_amount}</p>
       </div>
@@ -176,19 +186,19 @@ useEffect(() => {
       {/* Upload form */}
       <form onSubmit={handleSubmit} className="space-y-4">
 
-       <input
-  type="text"
-  value={utr}
-  maxLength={12}
-  onChange={(e) => {
-    // remove non-digits
-    const onlyNumbers = e.target.value.replace(/\D/g, "");
-    setUtr(onlyNumbers);
-  }}
-  className="w-full border p-2 rounded"
-  placeholder="Enter 12-digit UTR Number"
-  required
-/>
+        <input
+          type="text"
+          value={utr}
+          maxLength={12}
+          onChange={(e) => {
+            // remove non-digits
+            const onlyNumbers = e.target.value.replace(/\D/g, "");
+            setUtr(onlyNumbers);
+          }}
+          className="w-full border p-2 rounded"
+          placeholder="Enter 12-digit UTR Number"
+          required
+        />
 
         <input
           type="file"

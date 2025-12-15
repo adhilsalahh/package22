@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, MapPin, Users, IndianRupee, MousePointer2, Phone, Mail, MessageCircle, Instagram, Send, Mountain, ArrowRight } from 'lucide-react';
+import { Calendar, MapPin, Users, IndianRupee, MousePointer2, Phone, Mail, MessageCircle, Instagram, Facebook, Send, Mountain, ArrowRight } from 'lucide-react';
 import { Package } from '../types';
 import { packageService } from '../services/packageService';
-import { useAuth } from '../contexts/AuthContext'; 
+import { useAuth } from '../contexts/AuthContext';
 export const HomePage = () => {
   const navigate = useNavigate();
-   const { user } = useAuth();
+  const { user } = useAuth();
   const [packages, setPackages] = useState<Package[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -27,14 +27,14 @@ export const HomePage = () => {
     }
   };
 
-const galleryImages = [
-  { url: '/advanjer2.jpg' },
-  { url: '/kolukumalai4.jpg' },
-  { url: '/advanter 6.jpg' },
-  { url: '/meeshapulimala_header11.jpg' },
-  { url: '/meeshapulimala_header1.jpg' },
-  { url: '/kolukumalai7.jpg' },
-];
+  const galleryImages = [
+    { url: '/advanjer2.jpg', title: 'Mountain Trek', description: 'Experience the heights' },
+    { url: '/kolukumalai4.jpg', title: 'Sunrise View', description: 'Breathtaking mornings' },
+    { url: '/advanter 6.jpg', title: 'Jeep Safari', description: 'Thrilling rides' },
+    { url: '/meeshapulimala_header11.jpg', title: 'Meeshapulimala', description: 'Above the clouds' },
+    { url: '/meeshapulimala_header1.jpg', title: 'Nature Trails', description: 'Walk into the wild' },
+    { url: '/kolukumalai7.jpg', title: 'Campfire', description: 'Under the stars' },
+  ];
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -66,7 +66,7 @@ const galleryImages = [
 
   return (
     <div className="min-h-screen bg-white">
-       {/* ✅ SIGNUP WARNING BANNER */}
+      {/* ✅ SIGNUP WARNING BANNER */}
       {!user && (
         <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 text-center">
           <p className="font-medium text-lg">
@@ -380,7 +380,7 @@ const galleryImages = [
                 <h3 className="text-2xl font-bold text-gray-900 mb-6">Follow Us</h3>
                 <div className="flex space-x-4">
                   <a
-                    href="https://instagram.com"
+                    href="https://www.instagram.com/va_oru_trippadikkam?igsh=aXgzOTk5MHo5bHVm&utm_source=qr"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="group w-14 h-14 bg-gradient-to-br from-pink-500 via-red-500 to-yellow-500 rounded-xl flex items-center justify-center hover:scale-110 hover:rotate-6 transition-all duration-300 shadow-lg hover:shadow-2xl"
@@ -388,7 +388,15 @@ const galleryImages = [
                     <Instagram className="h-7 w-7 text-white" />
                   </a>
                   <a
-                    href="https://wa.me/911234567890"
+                    href="https://www.facebook.com/share/1GNtZvvrhs/?mibextid=wwXIfr"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group w-14 h-14 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center hover:scale-110 hover:rotate-6 transition-all duration-300 shadow-lg hover:shadow-2xl"
+                  >
+                    <Facebook className="h-7 w-7 text-white" />
+                  </a>
+                  <a
+                    href="https://wa.me/message/BXLHKNEX75UHH1"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="group w-14 h-14 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center hover:scale-110 hover:rotate-6 transition-all duration-300 shadow-lg hover:shadow-2xl"
@@ -444,25 +452,25 @@ const galleryImages = [
             <div>
               <div className="flex items-center mb-4">
                 <div
-            className="flex items-center cursor-pointer group"
-            onClick={() => navigate('/')}
-          >
-            <img
-              src="/Va oru trippadikkam.jpg"  // ✅ correct way for public folder
-              alt="Va Oru Trippadikkam Logo"
-              className="h-10 w-auto rounded-md shadow-sm transition-transform duration-300 group-hover:scale-110"
-            />
-            <span className="ml-3 text-lg font-bold text-white group-hover:text-emerald-600 transition-colors">
-              Va Oru Trippadikkam
-            </span>
-          </div>
+                  className="flex items-center cursor-pointer group"
+                  onClick={() => navigate('/')}
+                >
+                  <img
+                    src="/Va oru trippadikkam.jpg"  // ✅ correct way for public folder
+                    alt="Va Oru Trippadikkam Logo"
+                    className="h-10 w-auto rounded-md shadow-sm transition-transform duration-300 group-hover:scale-110"
+                  />
+                  <span className="ml-3 text-lg font-bold text-white group-hover:text-emerald-600 transition-colors">
+                    Va Oru Trippadikkam
+                  </span>
+                </div>
               </div>
               <p className="text-gray-400 mb-4">
                 Your trusted partner for unforgettable trekking adventures across India.
               </p>
               <div className="flex space-x-3">
                 <a
-                  href="https://instagram.com"
+                  href="https://www.instagram.com/va_oru_trippadikkam?igsh=aXgzOTk5MHo5bHVm&utm_source=qr"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-10 h-10 bg-gradient-to-br from-pink-500 via-red-500 to-yellow-500 rounded-lg flex items-center justify-center hover:scale-110 hover:rotate-12 transition-all duration-300"
@@ -470,7 +478,15 @@ const galleryImages = [
                   <Instagram className="h-5 w-5 text-white" />
                 </a>
                 <a
-                  href="https://wa.me/911234567890"
+                  href="https://www.facebook.com/share/1GNtZvvrhs/?mibextid=wwXIfr"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center hover:scale-110 hover:rotate-12 transition-all duration-300"
+                >
+                  <Facebook className="h-5 w-5 text-white" />
+                </a>
+                <a
+                  href="https://wa.me/message/BXLHKNEX75UHH1"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-10 h-10 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center hover:scale-110 hover:rotate-12 transition-all duration-300"
