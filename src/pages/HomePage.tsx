@@ -88,29 +88,6 @@ export const HomePage = () => {
         description="Book the best Kolukkumalai packages in Munnar. Experience sunrise treks, jeep safaris, and camping at Kolukkumalai with the official tourism promoter."
         keywords="Kolukkumalai packages, Munnar trekking, Kolukkumalai sunrise, jeep safari munnar, camping in munnar, adventure tourism kerala"
         url="/"
-        schema={{
-          "@context": "https://schema.org",
-          "@type": "TravelAgency",
-          "name": "Va Oru Trippadikkam",
-          "image": "https://vaorutrippadikkam.com/Va oru trippadikkam.jpg",
-          "@id": "https://vaorutrippadikkam.com",
-          "url": "https://vaorutrippadikkam.com",
-          "telephone": "+917592049934",
-          "address": {
-            "@type": "PostalAddress",
-            "streetAddress": "Suryanelli, Chinnakanal",
-            "addressLocality": "Munnar",
-            "addressRegion": "Kerala",
-            "postalCode": "685618",
-            "addressCountry": "IN"
-          },
-          "priceRange": "₹1000 - ₹5000",
-          "description": "Official tourism promoter for Kolukkumalai trekking and jeep safaris in Munnar.",
-          "sameAs": [
-            "https://www.instagram.com/va_oru_trippadikkam",
-            "https://www.facebook.com/share/1GNtZvvrhs"
-          ]
-        }}
       />
       {/* ✅ SIGNUP WARNING BANNER */}
       {!user && (
