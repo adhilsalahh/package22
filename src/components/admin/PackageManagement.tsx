@@ -121,16 +121,57 @@ export function PackageManagement({ showToast }: PackageManagementProps) {
       price_per_head: pkg.price_per_head,
       advance_payment: pkg.advance_payment,
       duration_days: pkg.duration_days,
-      start_date: pkg.start_date,
-      end_date: pkg.end_date,
+      start_date: pkg.start_date || '',
+      end_date: pkg.end_date || '',
       max_capacity: pkg.max_capacity,
       image_url: pkg.image_url || '',
       is_active: pkg.is_active,
     });
 
-    setInclusions(Array.isArray(pkg.inclusions) && pkg.inclusions.length > 0 ? pkg.inclusions : ['']);
-    setFacilities(Array.isArray(pkg.facilities) && pkg.facilities.length > 0 ? pkg.facilities : ['']);
-    setItinerary(Array.isArray(pkg.itinerary) && pkg.itinerary.length > 0 ? pkg.itinerary : [{ day: 1, title: '', description: '' }]);
+    // Handle inclusions (might be JSON objects from legacy data)
+    let incs = pkg.inclusions || [];
+    if (Array.isArray(incs) && incs.length > 0) {
+      const formattedIncs = incs.map((i: any) => {
+        if (typeof i === 'object' && i !== null) return i.text || JSON.stringify(i);
+        return String(i);
+      });
+      setInclusions(formattedIncs);
+    } else {
+      setInclusions(['']);
+    }
+
+    // Handle facilities
+    let facs = pkg.facilities || [];
+    if (Array.isArray(facs) && facs.length > 0) {
+      const formattedFacs = facs.map((f: any) => {
+        if (typeof f === 'object' && f !== null) return f.text || JSON.stringify(f);
+        return String(f);
+      });
+      setFacilities(formattedFacs);
+    } else {
+      setFacilities(['']);
+    }
+
+    // Handle itinerary
+    let itin = pkg.itinerary || [];
+    if (Array.isArray(itin) && itin.length > 0) {
+      const formattedItin = itin.map((item: any, idx: number) => {
+        let desc = item.description || '';
+        // Flatten legacy activities array if present
+        if (item.activities && Array.isArray(item.activities)) {
+          desc = item.activities.map((a: any) => `${a.time}: ${a.activity}`).join('\n');
+        }
+        return {
+          day: item.day || idx + 1,
+          title: item.title || `Day ${idx + 1}`,
+          description: desc
+        };
+      });
+      setItinerary(formattedItin);
+    } else {
+      setItinerary([{ day: 1, title: '', description: '' }]);
+    }
+
     setContactInfo(pkg.contact_info || { phone: '', email: '', website: '' });
 
     setShowModal(true);

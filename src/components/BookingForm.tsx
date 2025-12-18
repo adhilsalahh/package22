@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { X, Plus, Trash2, Calendar, Upload } from 'lucide-react';
-import { Package, Member } from '../lib/supabase';
+import { X, Plus, Minus, Calendar, Upload } from 'lucide-react';
+import { Package } from '../lib/supabase';
 import { useApp } from '../context/AppContext';
-import { sendBookingToWhatsApp } from '../lib/whatsapp';
+import { sendDetailedBookingToWhatsApp } from '../lib/whatsapp';
 
 interface BookingFormProps {
   package: Package;
@@ -14,7 +14,11 @@ const BookingForm: React.FC<BookingFormProps> = ({ package: pkg, onClose }) => {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [bookingDate, setBookingDate] = useState('');
-  const [members, setMembers] = useState<Member[]>([{ name: '', age: 0 }]);
+  const [adultMales, setAdultMales] = useState(1);
+  const [adultFemales, setAdultFemales] = useState(0);
+  const [childUnder5, setChildUnder5] = useState(0);
+  const [child5to8, setChild5to8] = useState(0);
+  const [childAbove8, setChildAbove8] = useState(0);
   const [paymentScreenshot, setPaymentScreenshot] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -22,44 +26,68 @@ const BookingForm: React.FC<BookingFormProps> = ({ package: pkg, onClose }) => {
     fetchAvailableDates(pkg.id);
   }, [pkg.id]);
 
-  const addMember = () => {
-    setMembers([...members, { name: '', age: 0 }]);
+  const increment = (setter: React.Dispatch<React.SetStateAction<number>>, value: number) => {
+    setter(value + 1);
   };
 
-  const removeMember = (index: number) => {
-    if (members.length > 1) {
-      setMembers(members.filter((_, i) => i !== index));
-    }
-  };
-
-  const updateMember = (index: number, field: 'name' | 'age', value: string | number) => {
-    const updated = [...members];
-    updated[index] = { ...updated[index], [field]: value };
-    setMembers(updated);
+  const decrement = (setter: React.Dispatch<React.SetStateAction<number>>, value: number) => {
+    if (value > 0) setter(value - 1);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!name || !phone || !bookingDate || members.some(m => !m.name || m.age <= 0)) {
+    if (!name || !phone || !bookingDate) {
       alert('Please fill in all required fields');
+      return;
+    }
+
+    const totalMembers = adultMales + adultFemales + childUnder5 + child5to8 + childAbove8;
+    if (totalMembers === 0) {
+      alert('Please add at least one traveler');
       return;
     }
 
     setIsSubmitting(true);
 
+    const basePrice = Number(pkg.price_per_head || 0);
+    const calculatedTotalPrice =
+      ((adultMales + adultFemales + childAbove8) * basePrice) +
+      (child5to8 * 500);
+
     try {
+      // Note: user_id is assumed to be handled by backend/context if not provided
       await addBooking({
         package_id: pkg.id,
-        name,
-        phone,
-        members,
+        travel_group_name: name,
+        number_of_members: totalMembers,
+        total_price: calculatedTotalPrice,
         booking_date: bookingDate,
         payment_screenshot: paymentScreenshot || undefined,
-      });
+        adult_males: adultMales,
+        adult_females: adultFemales,
+        child_under_5: childUnder5,
+        child_5_to_8: child5to8,
+        child_above_8: childAbove8,
+        advance_paid: 0,
+        payment_status: 'pending'
+      } as any); // Casting as any to bypass strict type check if Omit isn't matching perfectly with new fields
 
-      const totalPrice = pkg.price * members.length;
-      sendBookingToWhatsApp(pkg.title, name, phone, members, bookingDate, totalPrice);
+      sendDetailedBookingToWhatsApp(
+        pkg.title,
+        name,
+        phone,
+        bookingDate,
+        calculatedTotalPrice,
+        {
+          adultMales,
+          adultFemales,
+          childUnder5,
+          child5to8,
+          childAbove8
+        },
+        paymentScreenshot
+      );
 
       alert('Booking submitted successfully! You will be redirected to WhatsApp to complete the booking.');
       onClose();
@@ -71,7 +99,9 @@ const BookingForm: React.FC<BookingFormProps> = ({ package: pkg, onClose }) => {
     }
   };
 
-  const totalPrice = pkg.price * members.length;
+  const basePrice = Number(pkg.price_per_head || 0);
+  const totalPrice = ((adultMales + adultFemales + childAbove8) * basePrice) + (child5to8 * 500);
+  const totalMembers = adultMales + adultFemales + childUnder5 + child5to8 + childAbove8;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
@@ -158,52 +188,66 @@ const BookingForm: React.FC<BookingFormProps> = ({ package: pkg, onClose }) => {
           </div>
 
           <div>
-            <div className="flex justify-between items-center mb-3">
-              <label className="block text-sm font-semibold text-gray-700">
-                Member Details * ({members.length} {members.length === 1 ? 'member' : 'members'})
-              </label>
-              <button
-                type="button"
-                onClick={addMember}
-                className="flex items-center text-emerald-600 hover:text-emerald-700 font-semibold"
-              >
-                <Plus className="h-4 w-4 mr-1" />
-                Add Member
-              </button>
-            </div>
-            <div className="space-y-3 max-h-64 overflow-y-auto">
-              {members.map((member, index) => (
-                <div key={index} className="flex gap-3 items-start bg-gray-50 p-4 rounded-lg">
-                  <div className="flex-1">
-                    <input
-                      type="text"
-                      value={member.name}
-                      onChange={(e) => updateMember(index, 'name', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent mb-2"
-                      placeholder={`Member ${index + 1} name`}
-                      required
-                    />
-                    <input
-                      type="number"
-                      value={member.age || ''}
-                      onChange={(e) => updateMember(index, 'age', parseInt(e.target.value) || 0)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                      placeholder="Age"
-                      min="1"
-                      required
-                    />
-                  </div>
-                  {members.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => removeMember(index)}
-                      className="text-red-600 hover:text-red-700 p-2 hover:bg-red-50 rounded-lg transition-colors"
-                    >
-                      <Trash2 className="h-5 w-5" />
-                    </button>
-                  )}
+            <label className="block text-sm font-semibold text-gray-700 mb-3">
+              Travelers & Categories
+            </label>
+            <div className="space-y-4">
+              {/* Adults */}
+              <div className="flex justify-between items-center bg-gray-50 p-3 rounded-lg">
+                <span className="font-medium text-gray-700">Adult Males (Boys)</span>
+                <div className="flex items-center gap-3">
+                  <button type="button" onClick={() => decrement(setAdultMales, adultMales)} className="p-1 bg-white rounded shadow text-emerald-600"><Minus size={16} /></button>
+                  <span className="w-8 text-center font-semibold">{adultMales}</span>
+                  <button type="button" onClick={() => increment(setAdultMales, adultMales)} className="p-1 bg-white rounded shadow text-emerald-600"><Plus size={16} /></button>
                 </div>
-              ))}
+              </div>
+
+              <div className="flex justify-between items-center bg-gray-50 p-3 rounded-lg">
+                <span className="font-medium text-gray-700">Adult Females (Girls)</span>
+                <div className="flex items-center gap-3">
+                  <button type="button" onClick={() => decrement(setAdultFemales, adultFemales)} className="p-1 bg-white rounded shadow text-emerald-600"><Minus size={16} /></button>
+                  <span className="w-8 text-center font-semibold">{adultFemales}</span>
+                  <button type="button" onClick={() => increment(setAdultFemales, adultFemales)} className="p-1 bg-white rounded shadow text-emerald-600"><Plus size={16} /></button>
+                </div>
+              </div>
+
+              {/* Children */}
+              <div className="flex justify-between items-center bg-gray-50 p-3 rounded-lg">
+                <div>
+                  <span className="block font-medium text-gray-700">Children (Above 8 yrs)</span>
+                  <span className="text-xs text-gray-500">Full Price</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button type="button" onClick={() => decrement(setChildAbove8, childAbove8)} className="p-1 bg-white rounded shadow text-emerald-600"><Minus size={16} /></button>
+                  <span className="w-8 text-center font-semibold">{childAbove8}</span>
+                  <button type="button" onClick={() => increment(setChildAbove8, childAbove8)} className="p-1 bg-white rounded shadow text-emerald-600"><Plus size={16} /></button>
+                </div>
+              </div>
+
+              <div className="flex justify-between items-center bg-gray-50 p-3 rounded-lg">
+                <div>
+                  <span className="block font-medium text-gray-700">Children (5-8 yrs)</span>
+                  <span className="text-xs text-gray-500">Charged ₹500</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button type="button" onClick={() => decrement(setChild5to8, child5to8)} className="p-1 bg-white rounded shadow text-emerald-600"><Minus size={16} /></button>
+                  <span className="w-8 text-center font-semibold">{child5to8}</span>
+                  <button type="button" onClick={() => increment(setChild5to8, child5to8)} className="p-1 bg-white rounded shadow text-emerald-600"><Plus size={16} /></button>
+                </div>
+              </div>
+
+              <div className="flex justify-between items-center bg-gray-50 p-3 rounded-lg">
+                <div>
+                  <span className="block font-medium text-gray-700">Children (Below 5 yrs)</span>
+                  <span className="text-xs text-gray-500 text-green-600">Free</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button type="button" onClick={() => decrement(setChildUnder5, childUnder5)} className="p-1 bg-white rounded shadow text-emerald-600"><Minus size={16} /></button>
+                  <span className="w-8 text-center font-semibold">{childUnder5}</span>
+                  <button type="button" onClick={() => increment(setChildUnder5, childUnder5)} className="p-1 bg-white rounded shadow text-emerald-600"><Plus size={16} /></button>
+                </div>
+              </div>
+
             </div>
           </div>
 
@@ -227,11 +271,11 @@ const BookingForm: React.FC<BookingFormProps> = ({ package: pkg, onClose }) => {
           <div className="bg-gradient-to-r from-emerald-50 to-teal-50 p-6 rounded-xl">
             <div className="flex justify-between items-center mb-2">
               <span className="text-gray-700">Price per person:</span>
-              <span className="font-semibold text-gray-800">₹{pkg.price}</span>
+              <span className="font-semibold text-gray-800">₹{pkg.price_per_head}</span>
             </div>
             <div className="flex justify-between items-center mb-2">
               <span className="text-gray-700">Number of members:</span>
-              <span className="font-semibold text-gray-800">{members.length}</span>
+              <span className="font-semibold text-gray-800">{totalMembers}</span>
             </div>
             <div className="border-t border-gray-300 pt-2 mt-2">
               <div className="flex justify-between items-center">

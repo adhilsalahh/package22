@@ -75,13 +75,21 @@ export interface Booking {
   total_price: number;
   advance_paid: number;
   status: 'pending' | 'confirmed' | 'cancelled';
-  payment_status: 'advance_paid' | 'fully_paid';
+  payment_status: 'advance_paid' | 'fully_paid' | 'pending' | 'paid' | 'not_paid';
+  advance_utr?: string;
   whatsapp_conversation_link?: string;
   admin_notes?: string;
   created_at: string;
   updated_at: string;
   package?: Package;
   members?: BookingMember[];
+  payment_screenshot?: string;
+  adult_males?: number;
+  adult_females?: number;
+  couples?: number;
+  child_under_5?: number;
+  child_5_to_8?: number;
+  child_above_8?: number;
 }
 
 export interface BookingMember {

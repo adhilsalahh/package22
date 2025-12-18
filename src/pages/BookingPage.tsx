@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ChevronLeft, MessageCircle, Mail } from 'lucide-react';
+import { ChevronLeft, MessageCircle, Mail, Plus, Minus } from 'lucide-react';
 import { supabase, Package } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
+import { sendDetailedBookingToWhatsApp } from '../lib/whatsapp';
 
 const BookingPage = () => {
   const { id: packageId } = useParams<{ id: string }>();
@@ -22,9 +23,14 @@ const BookingPage = () => {
   });
 
   const [bookingType, setBookingType] = useState<'online' | 'whatsapp'>('online');
-  const [numberOfMembers, setNumberOfMembers] = useState<number | string>(2);
+  // Demographics
+  const [adultMales, setAdultMales] = useState(1);
+  const [adultFemales, setAdultFemales] = useState(0);
+  const [childUnder5, setChildUnder5] = useState(0);
+  const [child5to8, setChild5to8] = useState(0);
+  const [couples, setCouples] = useState(0);
+
   const [member1, setMember1] = useState({ name: '', phone: '' });
-  const [member2, setMember2] = useState({ name: '', phone: '' });
   const [loading, setLoading] = useState(!pkgFromState);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -55,8 +61,16 @@ const BookingPage = () => {
     } else if (pkgFromState) {
       // Even if we have package from state, we should load sold-out dates
       loadSoldOutDates(pkgFromState.id);
+      checkRestrictedPackage(pkgFromState);
     }
   }, [packageId, user, pkgFromState]);
+
+  const checkRestrictedPackage = (packageData: Package) => {
+    const titleLower = packageData.title.toLowerCase();
+    if (titleLower.includes('meesapulimala') || titleLower.includes('homestay')) {
+      setBookingType('whatsapp');
+    }
+  };
 
   const loadSoldOutDates = async (pkgId: string) => {
     try {
@@ -86,6 +100,7 @@ const BookingPage = () => {
         .maybeSingle();
       if (error) throw error;
       setPkg(data);
+      checkRestrictedPackage(data);
 
       if (data) {
         const { data: soldData } = await supabase
@@ -110,6 +125,14 @@ const BookingPage = () => {
     }
   };
 
+  const increment = (setter: React.Dispatch<React.SetStateAction<number>>, value: number) => {
+    setter(value + 1);
+  };
+
+  const decrement = (setter: React.Dispatch<React.SetStateAction<number>>, value: number) => {
+    if (value > 0) setter(value - 1);
+  };
+
   const handleWhatsAppBooking = async () => {
     if (!pkg) return;
 
@@ -122,12 +145,26 @@ const BookingPage = () => {
       return;
     }
 
+    const totalMembers = adultMales + adultFemales + (couples * 2) + childUnder5 + child5to8;
+    if (totalMembers === 0) {
+      setError('Please add at least one traveler');
+      return;
+    }
+
     setSubmitting(true);
     try {
-      const totalPrice = pkg.price_per_head * Number(numberOfMembers);
-      const advanceTotal = pkg.advance_payment * Number(numberOfMembers);
-      const remainingAmount = totalPrice - advanceTotal;
-      const travelGroupName = `${member1.name}${Number(numberOfMembers) >= 2 ? ` & ${member2.name}` : ''} ${Number(numberOfMembers) > 2 ? `& ${Number(numberOfMembers) - 2} others` : ''}`;
+      const basePrice = pkg.price_per_head;
+      const totalPrice = ((adultMales + adultFemales + (couples * 2)) * basePrice) + (child5to8 * 500);
+
+      const advanceTotal = pkg.advance_payment * (adultMales + adultFemales + (couples * 2)) + (child5to8 * 500);
+      // Logic check: if child5to8 pays 500 total, is advance 500? Assuming yes.
+      // If free child, advance 0.
+
+      // Calculate remaining
+      // If child 5-8 price is 500 and advance is 500, remaining is 0 for them.
+      // For adults, remaining is price - advance.
+
+      const travelGroupName = `${member1.name}${totalMembers > 1 ? ` & ${totalMembers - 1} others` : ''}`;
 
       // Create booking record first
       const { data: bookingData, error: insertError } = await supabase
@@ -137,7 +174,7 @@ const BookingPage = () => {
           package_id: pkg.id,
           booking_date: selectedDate,
           travel_group_name: travelGroupName,
-          number_of_members: Number(numberOfMembers),
+          number_of_members: totalMembers,
           total_price: totalPrice,
           advance_paid: 0,
           advance_amount: advanceTotal,
@@ -145,46 +182,41 @@ const BookingPage = () => {
           payment_status: 'not_paid', // Will pay via WA link or later
           guest_name: member1.name,
           guest_phone: member1.phone,
-          admin_notes: 'Booked via WhatsApp Request'
+          admin_notes: 'Booked via WhatsApp Request',
+          adult_males: adultMales,
+          adult_females: adultFemales,
+          couples: couples,
+          child_under_5: childUnder5,
+          child_5_to_8: child5to8
         })
         .select()
         .single();
 
+
       if (insertError) throw insertError;
       const bookingId = bookingData.id;
 
-      // Add members
-      const membersToInsert = [
-        { booking_id: bookingId, member_name: member1.name, member_phone: member1.phone },
-        ...(Number(numberOfMembers) >= 2
-          ? [{ booking_id: bookingId, member_name: member2.name, member_phone: member2.phone }]
-          : []),
-      ];
-      await supabase.from('booking_members').insert(membersToInsert);
+      // Add members (just primary for now as per updated simplified flow, or placeholder members)
+      // Since we removed individual member inputs, we just add the primary guest as a member. 
+      // Or we can add dummy members if strict FK or structure required, but typically just primary is enough if we have counts.
+      await supabase.from('booking_members').insert([
+        { booking_id: bookingId, member_name: member1.name, member_phone: member1.phone }
+      ]);
 
-
-
-      // Construct detailed message
-      const message = `*New Booking Request* 🏕️\n\n` +
-        `*Package:* ${pkg.title}\n` +
-        `*Date:* ${selectedDate}\n` +
-        `*Members:* ${numberOfMembers}\n` +
-        `*Guest Name:* ${member1.name}\n` +
-        `*Guest Phone:* ${member1.phone}\n` +
-        `--------------------------------\n` +
-        `*Total Price:* ₹${totalPrice}\n` +
-        `*Advance Required:* ₹${advanceTotal}\n` +
-        `*Remaining:* ₹${remainingAmount}\n` +
-        `--------------------------------\n` +
-        `*Booking ID:* ${bookingId.slice(0, 8)}\n\n` +
-        `Please confirm availability and share payment details.`;
-
-      const phoneNumber = "917592049934";
-      const url = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
-
-      // Use location.href to ensure mobile deep linking works and isn't blocked as a popup
-      // This will redirect the current page to WhatsApp
-      window.location.href = url;
+      sendDetailedBookingToWhatsApp(
+        pkg.title,
+        member1.name,
+        member1.phone,
+        selectedDate,
+        totalPrice,
+        {
+          adultMales,
+          adultFemales,
+          couples,
+          childUnder5,
+          child5to8
+        }
+      );
 
     } catch (err: any) {
       console.error(err);
@@ -206,8 +238,10 @@ const BookingPage = () => {
       setError('Please fill in all details for Person 1');
       return;
     }
-    if (Number(numberOfMembers) >= 2 && (!member2.name.trim() || !member2.phone.trim())) {
-      setError('Please fill in all details for Person 2');
+
+    const totalMembers = adultMales + adultFemales + (couples * 2) + childUnder5 + child5to8;
+    if (totalMembers === 0) {
+      setError('Please add at least one traveler');
       return;
     }
 
@@ -218,9 +252,11 @@ const BookingPage = () => {
 
     setSubmitting(true);
     try {
-      const totalPrice = pkg!.price_per_head * Number(numberOfMembers);
-      const advanceTotal = pkg!.advance_payment * Number(numberOfMembers);
-      const travelGroupName = `${member1.name}${Number(numberOfMembers) >= 2 ? ` & ${member2.name}` : ''}`;
+      const basePrice = pkg!.price_per_head;
+      const totalPrice = ((adultMales + adultFemales + (couples * 2)) * basePrice) + (child5to8 * 500);
+      const advanceTotal = pkg!.advance_payment * (adultMales + adultFemales + (couples * 2)) + (child5to8 * 500);
+
+      const travelGroupName = `${member1.name}${totalMembers > 1 ? ` & ${totalMembers - 1} others` : ''}`;
 
       const { data: bookingData, error: insertError } = await supabase
         .from('bookings')
@@ -229,14 +265,19 @@ const BookingPage = () => {
           package_id: pkg!.id,
           booking_date: selectedDate,
           travel_group_name: travelGroupName,
-          number_of_members: Number(numberOfMembers),
+          number_of_members: totalMembers,
           total_price: totalPrice,
           advance_paid: 0,
           advance_amount: advanceTotal,
           status: 'pending',
           payment_status: 'not_paid',
           guest_name: member1.name,
-          guest_phone: member1.phone
+          guest_phone: member1.phone,
+          adult_males: adultMales,
+          adult_females: adultFemales,
+          couples: couples,
+          child_under_5: childUnder5,
+          child_5_to_8: child5to8
         })
         .select()
         .single();
@@ -244,17 +285,9 @@ const BookingPage = () => {
       if (insertError) throw insertError;
       const bookingId = bookingData.id;
 
-      const membersToInsert = [
-        { booking_id: bookingId, member_name: member1.name, member_phone: member1.phone },
-        ...(Number(numberOfMembers) >= 2
-          ? [{ booking_id: bookingId, member_name: member2.name, member_phone: member2.phone }]
-          : []),
-      ];
-
-      const { error: membersError } = await supabase.from('booking_members').insert(membersToInsert);
-      if (membersError) throw membersError;
-
-
+      await supabase.from('booking_members').insert([
+        { booking_id: bookingId, member_name: member1.name, member_phone: member1.phone }
+      ]);
 
       // Proceed to payment
       navigate(`/payment/${bookingId}`);
@@ -281,8 +314,7 @@ const BookingPage = () => {
     </div>
   );
 
-  const totalPrice = pkg.price_per_head * Number(numberOfMembers);
-  const advanceTotal = pkg.advance_payment * Number(numberOfMembers);
+
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -300,25 +332,27 @@ const BookingPage = () => {
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Booking Type Selection */}
             <div className="grid grid-cols-2 gap-4 mb-8">
-              <button
-                type="button"
-                onClick={() => setBookingType('online')}
-                className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all ${bookingType === 'online'
-                  ? 'border-emerald-600 bg-emerald-50 text-emerald-700'
-                  : 'border-gray-200 hover:border-emerald-200 text-gray-600'
-                  }`}
-              >
-                <Mail className="h-8 w-8 mb-2" />
-                <span className="font-semibold">Normal Booking</span>
-                <span className="text-xs text-center mt-1">Confirmed via Email</span>
-              </button>
+              {(!pkg.title.toLowerCase().includes('meesapulimala') && !pkg.title.toLowerCase().includes('homestay')) && (
+                <button
+                  type="button"
+                  onClick={() => setBookingType('online')}
+                  className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all ${bookingType === 'online'
+                    ? 'border-emerald-600 bg-emerald-50 text-emerald-700'
+                    : 'border-gray-200 hover:border-emerald-200 text-gray-600'
+                    }`}
+                >
+                  <Mail className="h-8 w-8 mb-2" />
+                  <span className="font-semibold">Normal Booking</span>
+                  <span className="text-xs text-center mt-1">Confirmed via Email</span>
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => setBookingType('whatsapp')}
                 className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all ${bookingType === 'whatsapp'
                   ? 'border-green-600 bg-green-50 text-green-700'
                   : 'border-gray-200 hover:border-green-200 text-gray-600'
-                  }`}
+                  } ${(pkg.title.toLowerCase().includes('meesapulimala') || pkg.title.toLowerCase().includes('homestay')) ? 'col-span-2' : ''}`}
               >
                 <MessageCircle className="h-8 w-8 mb-2" />
                 <span className="font-semibold">WhatsApp Booking</span>
@@ -364,57 +398,93 @@ const BookingPage = () => {
               `}</style>
             </div>
 
-            {/* Number of Members */}
+            {/* Travelers & Categories */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Number of Members <span className="text-red-500">*</span>
+              <label className="block text-sm font-semibold text-gray-700 mb-3">
+                Travelers & Categories
               </label>
-              <input
-                type="number"
-                min="1"
-                value={numberOfMembers}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  if (val === '') setNumberOfMembers('');
-                  else {
-                    const num = parseInt(val, 10);
-                    if (!isNaN(num)) setNumberOfMembers(num);
-                  }
-                }}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                required
-              />
+              <div className="space-y-4">
+                {/* Adult Males */}
+                <div className="flex justify-between items-center bg-gray-50 p-3 rounded-lg">
+                  <span className="font-medium text-gray-700"> Males (Boys)</span>
+                  <div className="flex items-center gap-3">
+                    <button type="button" onClick={() => decrement(setAdultMales, adultMales)} className="p-1 bg-white rounded shadow text-emerald-600 outline-none"><Minus size={16} /></button>
+                    <span className="w-8 text-center font-semibold">{adultMales}</span>
+                    <button type="button" onClick={() => increment(setAdultMales, adultMales)} className="p-1 bg-white rounded shadow text-emerald-600 outline-none"><Plus size={16} /></button>
+                  </div>
+                </div>
+
+                {/* Adult Females */}
+                <div className="flex justify-between items-center bg-gray-50 p-3 rounded-lg">
+                  <span className="font-medium text-gray-700">Females (Girls)</span>
+                  <div className="flex items-center gap-3">
+                    <button type="button" onClick={() => decrement(setAdultFemales, adultFemales)} className="p-1 bg-white rounded shadow text-emerald-600 outline-none"><Minus size={16} /></button>
+                    <span className="w-8 text-center font-semibold">{adultFemales}</span>
+                    <button type="button" onClick={() => increment(setAdultFemales, adultFemales)} className="p-1 bg-white rounded shadow text-emerald-600 outline-none"><Plus size={16} /></button>
+                  </div>
+                </div>
+
+                {/* Couples */}
+                <div className="flex justify-between items-center bg-gray-50 p-3 rounded-lg">
+                  <div>
+                    <span className="block font-medium text-gray-700">Couples</span>
+                    <span className="text-xs text-gray-500">2 People</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button type="button" onClick={() => decrement(setCouples, couples)} className="p-1 bg-white rounded shadow text-emerald-600 outline-none"><Minus size={16} /></button>
+                    <span className="w-8 text-center font-semibold">{couples}</span>
+                    <button type="button" onClick={() => increment(setCouples, couples)} className="p-1 bg-white rounded shadow text-emerald-600 outline-none"><Plus size={16} /></button>
+                  </div>
+                </div>
+
+                {/* Child < 5 */}
+                <div className="flex justify-between items-center bg-gray-50 p-3 rounded-lg">
+                  <div>
+                    <span className="block font-medium text-gray-700">Children (Below 5 yrs)</span>
+                    <span className="text-xs text-gray-500 text-green-600">Free</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button type="button" onClick={() => decrement(setChildUnder5, childUnder5)} className="p-1 bg-white rounded shadow text-emerald-600 outline-none"><Minus size={16} /></button>
+                    <span className="w-8 text-center font-semibold">{childUnder5}</span>
+                    <button type="button" onClick={() => increment(setChildUnder5, childUnder5)} className="p-1 bg-white rounded shadow text-emerald-600 outline-none"><Plus size={16} /></button>
+                  </div>
+                </div>
+
+                {/* Child 5-8 */}
+                <div className="flex justify-between items-center bg-gray-50 p-3 rounded-lg">
+                  <div>
+                    <span className="block font-medium text-gray-700">Children (5-8 yrs)</span>
+                    <span className="text-xs text-gray-500">Charged ₹500</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button type="button" onClick={() => decrement(setChild5to8, child5to8)} className="p-1 bg-white rounded shadow text-emerald-600 outline-none"><Minus size={16} /></button>
+                    <span className="w-8 text-center font-semibold">{child5to8}</span>
+                    <button type="button" onClick={() => increment(setChild5to8, child5to8)} className="p-1 bg-white rounded shadow text-emerald-600 outline-none"><Plus size={16} /></button>
+                  </div>
+                </div>
+
+              </div>
             </div>
 
             {/* Members Info */}
             <div className="space-y-4">
               <div className="border border-gray-200 rounded-lg p-4">
-                <h4 className="font-medium text-gray-900 mb-3">Person 1</h4>
+                <h4 className="font-medium text-gray-900 mb-3">Primary Contact</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <input type="text" value={member1.name} onChange={e => setMember1({ ...member1, name: e.target.value })} placeholder="Full Name" required className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent" />
                   <input type="tel" value={member1.phone} onChange={e => setMember1({ ...member1, phone: e.target.value.replace(/\D/g, '') })} placeholder="Phone Number" maxLength={10} required className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent" />
                 </div>
               </div>
-
-              {Number(numberOfMembers) >= 2 && (
-                <div className="border border-gray-200 rounded-lg p-4">
-                  <h4 className="font-medium text-gray-900 mb-3">Person 2</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <input type="text" value={member2.name} onChange={e => setMember2({ ...member2, name: e.target.value })} placeholder="Full Name" required className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent" />
-                    <input type="tel" value={member2.phone} onChange={e => setMember2({ ...member2, phone: e.target.value.replace(/\D/g, '') })} placeholder="Phone Number" maxLength={10} required className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent" />
-                  </div>
-                </div>
-              )}
             </div>
 
             {/* Booking Summary */}
             <div className="bg-gray-50 rounded-lg p-6 space-y-3">
               <h3 className="font-bold text-gray-900 text-lg mb-4">Booking Summary</h3>
-              <div className="flex justify-between text-gray-700"><span>Number of Members:</span><span className="font-medium">{numberOfMembers}</span></div>
+              <div className="flex justify-between text-gray-700"><span>Number of Members:</span><span className="font-medium">{adultMales + adultFemales + (couples * 2) + childUnder5 + child5to8}</span></div>
               <div className="flex justify-between text-gray-700"><span>Price per Person:</span><span className="font-medium">₹{pkg.price_per_head}</span></div>
-              <div className="flex justify-between text-gray-700 border-t pt-3"><span className="font-medium">Total Price:</span><span className="font-bold text-xl">₹{totalPrice}</span></div>
+              <div className="flex justify-between text-gray-700 border-t pt-3"><span className="font-medium">Total Price:</span><span className="font-bold text-xl">₹{((adultMales + adultFemales + (couples * 2)) * pkg.price_per_head) + (child5to8 * 500)}</span></div>
               {bookingType === 'online' && (
-                <div className="flex justify-between text-emerald-600 border-t pt-3"><span className="font-medium">Advance Payment Required:</span><span className="font-bold text-xl">₹{advanceTotal}</span></div>
+                <div className="flex justify-between text-emerald-600 border-t pt-3"><span className="font-medium">Advance Payment Required:</span><span className="font-bold text-xl">₹{pkg.advance_payment * (adultMales + adultFemales + (couples * 2)) + (child5to8 * 500)}</span></div>
               )}
             </div>
 

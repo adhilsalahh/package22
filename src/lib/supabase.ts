@@ -26,6 +26,7 @@ export interface Package {
   itinerary?: any[];
   facilities?: any[];
   contact_info?: any;
+  details?: any;
   is_active: boolean;
   created_at: string;
   updated_at: string;

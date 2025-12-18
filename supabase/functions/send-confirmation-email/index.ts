@@ -19,6 +19,11 @@ interface BookingData {
   status: string;
   payment_status: string;
   advance_receipt_url?: string;
+  adult_males?: number;
+  adult_females?: number;
+  couples?: number;
+  child_5_to_8?: number;
+  child_under_5?: number;
 }
 
 interface EmailRequest {
@@ -31,57 +36,104 @@ function generateBookingEmailHTML(
   data: BookingData,
   siteName: string
 ): string {
-  // Use last 5 digits for short ID
   const shortId = data.id.slice(-5).toUpperCase();
 
+  const balance =
+    parseFloat(data.total_price) - parseFloat(data.advance_paid);
+
   return `
-    <html>
-      <body style="font-family: Arial, sans-serif; max-width:600px;margin:0 auto;padding:20px;">
-        <div style="background:#815536;color:white;padding:30px;text-align:center;border-radius:10px 10px 0 0;">
-          <h1>${siteName}</h1>
-          <p>Booking Confirmation</p>
+  <html>
+    <body style="font-family: Arial, sans-serif; max-width:600px;margin:0 auto;padding:20px;">
+      
+      <div style="background:#815536;color:white;padding:30px;text-align:center;border-radius:10px 10px 0 0;">
+        <h1>${siteName}</h1>
+        <p>Booking Confirmation</p>
+      </div>
+
+      <div style="background:white;padding:30px;border:1px solid #ddd;border-top:none;">
+
+        <h2 style="color:#815536;">Hi ${data.guest_name},</h2>
+        <p>Thank you for booking with us! Here are your booking details.</p>
+
+        <div style="border: 2px dashed #815536; padding: 20px; margin-top: 20px; border-radius: 10px; background:#fafafa;">
+
+          <h3 style="margin-top:0;color:#815536;">Booking Receipt</h3>
+
+          <table style="width:100%;margin-top:10px;">
+            <tr>
+              <td>Booking ID</td>
+              <td style="text-align:right;font-weight:bold;">#${shortId}</td>
+            </tr>
+            <tr>
+              <td>Date</td>
+              <td style="text-align:right;font-weight:bold;">
+                ${new Date(data.booking_date).toLocaleDateString("en-IN", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  })}
+              </td>
+            </tr>
+            <tr>
+              <td>Package</td>
+              <td style="text-align:right;font-weight:bold;">
+                ${data.package_title || "N/A"}
+              </td>
+            </tr>
+          </table>
+
+          <hr style="margin:15px 0;" />
+
+          <h4>Guest Details (${data.number_of_members} Total)</h4>
+          <ul style="font-size:14px;line-height:1.6;">
+            ${data.couples ? `<li>Couples: <strong>${data.couples}</strong> (${data.couples * 2} persons)</li>` : ""}
+            ${data.adult_males ? `<li>Adult Males: <strong>${data.adult_males}</strong></li>` : ""}
+            ${data.adult_females ? `<li>Adult Females: <strong>${data.adult_females}</strong></li>` : ""}
+            ${data.child_5_to_8 ? `<li>Children (5–8 yrs): <strong>${data.child_5_to_8}</strong></li>` : ""}
+            ${data.child_under_5 ? `<li>Children (Below 5 yrs): <strong>${data.child_under_5}</strong></li>` : ""}
+          </ul>
+
+          <table style="width:100%;margin-top:20px;border-top:2px solid #ddd;">
+            <tr>
+              <td><strong>Total Amount</strong></td>
+              <td style="text-align:right;font-weight:bold;color:#815536;">
+                ₹${parseFloat(data.total_price).toLocaleString()}
+              </td>
+            </tr>
+            <tr>
+              <td style="color:#2ecc71;">Advance Paid</td>
+              <td style="text-align:right;color:#2ecc71;">
+                - ₹${parseFloat(data.advance_paid).toLocaleString()}
+              </td>
+            </tr>
+            <tr>
+              <td style="color:#e74c3c;"><strong>Balance Due</strong></td>
+              <td style="text-align:right;color:#e74c3c;font-weight:bold;">
+                ₹${balance.toLocaleString()}
+              </td>
+            </tr>
+          </table>
         </div>
 
-        <div style="background:white;padding:30px;border:1px solid #ddd;border-top:none;">
-
-          <h2 style="color:#815536;">Hi ${data.guest_name},</h2>
-          <p>Thank you for booking with us! Here is your booking summary:</p>
-
-          <h3 style="margin-top:25px;">Booking Details</h3>
-
-          <p><strong>Booking ID:</strong> #${shortId}</p>
-          <p><strong>Booking Date:</strong> ${new Date(
-    data.booking_date
-  ).toLocaleDateString("en-IN")}</p>
-
-          <p><strong>Package Title:</strong> ${data.package_title || "N/A"
-    }</p>
-
-          <p><strong>Members:</strong> ${data.number_of_members}</p>
-
-          <p><strong>Total Price:</strong> ₹${parseFloat(
-      data.total_price
-    ).toLocaleString()}</p>
-
-          <p><strong>Advance Paid:</strong> ₹${parseFloat(
-      data.advance_paid
-    ).toLocaleString()}</p>
-
-          <p><strong>Payment Status:</strong> ${data.payment_status}</p>
-
+        <div style="margin-top:25px;text-align:center;">
           ${data.advance_receipt_url
-      ? `<p><strong>Receipt:</strong> <a href="${data.advance_receipt_url}">View Receipt</a></p>`
+      ? `<a href="${data.advance_receipt_url}" style="background:#815536;color:white;padding:10px 20px;border-radius:5px;text-decoration:none;">View Payment Receipt</a>`
       : ""
     }
-
-          <p style="margin-top:25px;">We look forward to serving you.</p>
+          <p style="margin-top:15px;font-size:14px;color:#666;">
+            Please show this email at the time of arrival.
+          </p>
         </div>
 
-        <div style="background:#815536;padding:20px;text-align:center;border-radius:0 0 10px 10px;color:white;">
-          <p>© 2025 ${siteName}. All rights reserved.</p>
-        </div>
-      </body>
-    </html>
+      </div>
+
+      <div style="background:#815536;color:white;text-align:center;padding:20px;border-radius:0 0 10px 10px;">
+        © 2025 ${siteName}. All rights reserved.
+      </div>
+
+    </body>
+  </html>
   `;
 }
 
@@ -150,9 +202,9 @@ Deno.serve(async (req: Request) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Fetch settings
+    // Fetch settings from new smtp_settings table
     const { data: settingsArray } = await supabase
-      .from("site_settings")
+      .from("smtp_settings")
       .select("setting_key,setting_value");
 
     const settings: Record<string, any> = {};
@@ -160,7 +212,7 @@ Deno.serve(async (req: Request) => {
       settings[s.setting_key] = s.setting_value;
     });
 
-    const siteName = settings.site_name || "Va Oru Trippadikkam";
+    const siteName = settings.from_name || "Va Oru Trippadikkam";
 
     const html = generateBookingEmailHTML(bookingData, siteName);
 

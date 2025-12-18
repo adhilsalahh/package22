@@ -11,6 +11,11 @@ type BookingWithDetails = Booking & {
   profile?: Profile;
   advance_receipt_url?: string;
   package_title?: string; // ✅ Added
+  adult_males?: number;
+  adult_females?: number;
+  couples?: number;
+  child_under_5?: number;
+  child_5_to_8?: number;
 };
 
 export function BookingManagement({ showToast }: BookingManagementProps) {
@@ -19,6 +24,13 @@ export function BookingManagement({ showToast }: BookingManagementProps) {
   const [selectedBooking, setSelectedBooking] = useState<BookingWithDetails | null>(null);
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'pending_payment' | 'confirmed' | 'cancelled'>('all');
   const [cancellationReason, setCancellationReason] = useState('');
+  const [hasViewedPaymentInfo, setHasViewedPaymentInfo] = useState(false);
+
+  useEffect(() => {
+    if (selectedBooking) {
+      setHasViewedPaymentInfo(false);
+    }
+  }, [selectedBooking]);
 
   useEffect(() => {
     fetchBookings();
@@ -75,7 +87,7 @@ export function BookingManagement({ showToast }: BookingManagementProps) {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-      await fetch(`${supabaseUrl}/functions/v1/send-confirmation-email`, {
+      const res = await fetch(`${supabaseUrl}/functions/v1/send-confirmation-email`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${anonKey}`,
@@ -86,21 +98,30 @@ export function BookingManagement({ showToast }: BookingManagementProps) {
           bookingData: {
             id: booking.id,
             guest_name: booking.profile.username || 'User',
-           
             package_title: booking.package_title || booking.package?.title || '',
             booking_date: travelDate,
-           
             number_of_members: booking.number_of_members || 1,
             total_price: String(booking.total_price || 0),
             advance_paid: String(booking.advance_paid || 0),
             status: booking.status || 'pending',
             payment_status: booking.payment_status || 'pending',
             advance_receipt_url: booking.advance_receipt_url || '',
+            adult_males: booking.adult_males ?? 0,
+            adult_females: booking.adult_females ?? 0,
+            couples: booking.couples ?? 0,
+            child_5_to_8: booking.child_5_to_8 ?? 0,
+            child_under_5: booking.child_under_5 ?? 0
           },
         }),
       });
-    } catch (err) {
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Failed to send confirmation email');
+      }
+    } catch (err: any) {
       console.error('Error Sending Email:', err);
+      showToast(`Email failed: ${err.message}`, 'error');
     }
   };
 
@@ -109,6 +130,7 @@ export function BookingManagement({ showToast }: BookingManagementProps) {
   // ----------------------------------------
   const getReceiptPublicUrl = (path?: string) => {
     if (!path) return null;
+    if (path.startsWith('http')) return path; // Already a full URL
     try {
       const { data } = supabase.storage.from('receipts').getPublicUrl(path);
       return (data as any)?.publicUrl || null;
@@ -205,9 +227,8 @@ export function BookingManagement({ showToast }: BookingManagementProps) {
         {(['all', 'pending', 'pending_payment', 'confirmed', 'cancelled'] as const).map((status) => (
           <button
             key={status}
-            className={`px-3 py-1 rounded ${
-              filterStatus === status ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-            }`}
+            className={`px-3 py-1 rounded ${filterStatus === status ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
             onClick={() => setFilterStatus(status)}
           >
             {status.charAt(0).toUpperCase() + status.slice(1)}
@@ -261,13 +282,12 @@ export function BookingManagement({ showToast }: BookingManagementProps) {
 
                   <td className="px-6 py-4">
                     <span
-                      className={`px-2 py-1 rounded-full text-xs ${
-                        b.status === 'confirmed'
-                          ? 'bg-green-100 text-green-800'
-                          : b.status === 'cancelled'
+                      className={`px-2 py-1 rounded-full text-xs ${b.status === 'confirmed'
+                        ? 'bg-green-100 text-green-800'
+                        : b.status === 'cancelled'
                           ? 'bg-red-100 text-red-800'
                           : 'bg-yellow-100 text-yellow-800'
-                      }`}
+                        }`}
                     >
                       {b.status}
                     </span>
@@ -290,8 +310,8 @@ export function BookingManagement({ showToast }: BookingManagementProps) {
 
       {/* ---------------- MODAL ---------------- */}
       {selectedBooking && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl w-full max-w-2xl p-6 shadow-xl">
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl w-full max-w-2xl p-6 shadow-xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-xl font-bold">Booking Details</h3>
               <button onClick={() => setSelectedBooking(null)}>
@@ -320,13 +340,40 @@ export function BookingManagement({ showToast }: BookingManagementProps) {
               <p>Total Amount: ₹{Number(selectedBooking.total_price).toLocaleString()}</p>
               <p>Advance Paid: ₹{Number(selectedBooking.advance_paid).toLocaleString()}</p>
 
+              {/* Demographics Breakdown */}
+              <div className="bg-gray-50 p-3 rounded-md border border-gray-200">
+                <h4 className="text-sm font-semibold text-gray-700 mb-2">Group Details ({selectedBooking.number_of_members} Members)</h4>
+                <ul className="text-sm space-y-1 text-gray-600">
+                  <li>Adult Males: {selectedBooking.adult_males || 0}</li>
+                  <li>Adult Females: {selectedBooking.adult_females || 0}</li>
+                  <li>Couples: {selectedBooking.couples || 0} ({(selectedBooking.couples || 0) * 2} people)</li>
+                  <li>Children (5-8): {selectedBooking.child_5_to_8 || 0}</li>
+                  <li>Children (&lt;5): {selectedBooking.child_under_5 || 0}</li>
+                </ul>
+              </div>
+
               {selectedBooking.advance_receipt_url && (
                 <div>
-                  <p className="mb-2">Payment Screenshot:</p>
-                  <img
-                    src={getReceiptPublicUrl(selectedBooking.advance_receipt_url) || ''}
-                    className="max-h-60 object-contain border rounded-lg"
-                  />
+                  <p className="mb-2 font-semibold text-red-600">Please Verify Payment Screenshot:</p>
+                  <a
+                    href={getReceiptPublicUrl(selectedBooking.advance_receipt_url) || '#'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => setHasViewedPaymentInfo(true)}
+                    className="block group relative"
+                  >
+                    <img
+                      src={getReceiptPublicUrl(selectedBooking.advance_receipt_url) || ''}
+                      className="max-h-60 object-contain border rounded-lg shadow-sm hover:opacity-90 transition-opacity cursor-zoom-in"
+                      alt="Payment Receipt"
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all">
+                      <span className="sr-only">Click to view full size</span>
+                    </div>
+                  </a>
+                  {!hasViewedPaymentInfo && (
+                    <p className="text-xs text-red-500 mt-1">* Click image to verify before confirming payment</p>
+                  )}
                 </div>
               )}
 
@@ -335,7 +382,11 @@ export function BookingManagement({ showToast }: BookingManagementProps) {
                 <div className="flex gap-4 pt-4">
                   <button
                     onClick={() => updateBookingPaymentStatus(selectedBooking.id, 'paid')}
-                    className="flex-1 bg-green-600 text-white py-2 rounded-lg flex items-center justify-center"
+                    disabled={selectedBooking.advance_receipt_url ? !hasViewedPaymentInfo : false}
+                    className={`flex-1 text-white py-2 rounded-lg flex items-center justify-center ${(selectedBooking.advance_receipt_url && !hasViewedPaymentInfo)
+                      ? 'bg-gray-400 cursor-not-allowed'
+                      : 'bg-green-600 hover:bg-green-700'
+                      }`}
                   >
                     <CheckCircle className="h-5 w-5 mr-2" /> Confirm Payment
                   </button>
