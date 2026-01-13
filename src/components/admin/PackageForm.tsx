@@ -30,6 +30,7 @@ export function PackageForm({ onSuccess }: PackageFormProps) {
     end_date: '',
     image_url: '',
     is_active: true,
+    is_special_package: false,
   });
 
   const [galleryImages, setGalleryImages] = useState<string[]>(['']);
@@ -138,6 +139,7 @@ export function PackageForm({ onSuccess }: PackageFormProps) {
         end_date: '',
         image_url: '',
         is_active: true,
+        is_special_package: false,
       });
       setGalleryImages(['']);
       setInclusions(['']);
@@ -315,6 +317,19 @@ export function PackageForm({ onSuccess }: PackageFormProps) {
                 <option value="active">Active</option>
                 <option value="inactive">Inactive</option>
               </select>
+            </div>
+
+            <div className="flex items-center space-x-3 pt-6">
+              <input
+                type="checkbox"
+                id="is_special_package"
+                checked={formData.is_special_package}
+                onChange={(e) => setFormData({ ...formData, is_special_package: e.target.checked })}
+                className="h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              />
+              <label htmlFor="is_special_package" className="block text-sm font-medium text-gray-700">
+                Special Package (WhatsApp Booking Only)
+              </label>
             </div>
           </div>
         </div>

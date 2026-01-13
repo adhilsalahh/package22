@@ -1,5 +1,5 @@
 
-const ADMIN_WHATSAPP = '918129464465';
+const ADMIN_WHATSAPP = '917592049934';
 
 interface TravelerInfo {
   name: string;
@@ -105,3 +105,54 @@ export const sendConfirmationToUser = (
   const url = `https://wa.me/91${cleanPhone}?text=${message}`;
   window.open(url, '_blank');
 };
+
+export const sendSpecialPackageInquiry = (
+  packageTitle: string,
+  price: number
+) => {
+  const message = `*🌟 Special Package Inquiry! 🌟*%0A%0A` +
+    `I am interested in the special package: *${packageTitle}*%0A` +
+    `Price: ₹${price.toLocaleString()}%0A%0A` +
+    `Please provide more details on how to book this package.`;
+
+  const url = `https://wa.me/${ADMIN_WHATSAPP}?text=${message}`;
+  window.open(url, '_blank');
+};
+
+/**
+ * Send WhatsApp booking request with the exact same format as online bookings
+ * This ensures consistency between online and WhatsApp booking flows
+ */
+export const sendWhatsAppBookingRequest = (
+  packageTitle: string,
+  bookingDate: string,
+  memberCount: number,
+  guestName: string,
+  guestPhone: string,
+  totalPrice: number,
+  advanceRequired: number,
+  remainingAmount: number,
+  bookingId: string
+) => {
+  // Build the message with actual newlines, then encode it properly
+  const message = `New Booking Request
+
+Package: ${packageTitle}
+Date: ${bookingDate}
+Members: ${memberCount}
+Guest Name: ${guestName}
+Guest Phone: ${guestPhone}
+--------------------------------
+Total Price: ₹${totalPrice.toLocaleString()}
+Advance Required: ₹${advanceRequired.toLocaleString()}
+Remaining: ₹${remainingAmount.toLocaleString()}
+--------------------------------
+Booking ID: ${bookingId.substring(0, 8)}
+
+Please confirm availability and share payment details.`;
+
+  // Use encodeURIComponent for proper URL encoding
+  const url = `https://wa.me/${ADMIN_WHATSAPP}?text=${encodeURIComponent(message)}`;
+  window.open(url, '_blank');
+};
+

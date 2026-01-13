@@ -9,6 +9,7 @@ import {
   Mail,
 } from 'lucide-react';
 import { supabase, Package } from '../lib/supabase';
+import { sendSpecialPackageInquiry } from '../lib/whatsapp';
 import { useAuth } from '../contexts/AuthContext';
 import './PackageDetailsAnimations.css'; // We will create this simple css next
 
@@ -98,9 +99,19 @@ export function PackageDetails() {
             </div>
             <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 leading-tight drop-shadow-lg">{pkg.title}</h1>
             <div className="flex flex-wrap gap-4">
-              <button onClick={handleBookNow} className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-3 rounded-full font-bold text-lg shadow-lg hover:shadow-emerald-500/30 transition-all transform hover:-translate-y-1">
-                Book Now - ₹{pkg.price_per_head}
-              </button>
+              {pkg.is_special_package ? (
+                <button
+                  onClick={() => sendSpecialPackageInquiry(pkg.title, pkg.price_per_head)}
+                  className="bg-green-600 hover:bg-green-500 text-white px-8 py-3 rounded-full font-bold text-lg shadow-lg hover:shadow-green-500/30 transition-all transform hover:-translate-y-1 flex items-center gap-2"
+                >
+                  <Phone className="h-5 w-5" />
+                  Book via WhatsApp
+                </button>
+              ) : (
+                <button onClick={handleBookNow} className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-3 rounded-full font-bold text-lg shadow-lg hover:shadow-emerald-500/30 transition-all transform hover:-translate-y-1">
+                  Book Now - ₹{pkg.price_per_head}
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -179,9 +190,19 @@ export function PackageDetails() {
                       </div>
                     </div>
 
-                    <button onClick={handleBookNow} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:shadow-emerald-500/20 transition-all mb-4">
-                      Book Now
-                    </button>
+                    {pkg.is_special_package ? (
+                      <button
+                        onClick={() => sendSpecialPackageInquiry(pkg.title, pkg.price_per_head)}
+                        className="w-full bg-green-600 hover:bg-green-700 text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:shadow-green-500/20 transition-all mb-4 flex items-center justify-center gap-2"
+                      >
+                        <Phone className="h-5 w-5" />
+                        Book via WhatsApp
+                      </button>
+                    ) : (
+                      <button onClick={handleBookNow} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:shadow-emerald-500/20 transition-all mb-4">
+                        Book Now
+                      </button>
+                    )}
 
                     {(contactInfo.phone || contactInfo.email) && (
                       <div className="border-t pt-4 mt-4">

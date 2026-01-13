@@ -5,7 +5,7 @@ import { supabase, Package } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
-import { sendDetailedBookingToWhatsApp } from '../lib/whatsapp';
+import { sendWhatsAppBookingRequest } from '../lib/whatsapp';
 
 const BookingPage = () => {
   const { id: packageId } = useParams<{ id: string }>();
@@ -203,19 +203,32 @@ const BookingPage = () => {
         { booking_id: bookingId, member_name: member1.name, member_phone: member1.phone }
       ]);
 
-      sendDetailedBookingToWhatsApp(
+      // Mark the selected date as sold out (same as online booking)
+      const { error: soldOutError } = await supabase
+        .from('package_soldout_dates')
+        .insert({
+          package_id: pkg.id,
+          soldout_date: selectedDate
+        });
+
+      // If the date is already sold out (duplicate), we can ignore the error
+      if (soldOutError && !soldOutError.message.includes('duplicate')) {
+        console.warn('Could not mark date as sold out:', soldOutError);
+      }
+
+      // Calculate remaining amount
+      const remainingAmount = totalPrice - advanceTotal;
+
+      sendWhatsAppBookingRequest(
         pkg.title,
+        selectedDate,
+        totalMembers,
         member1.name,
         member1.phone,
-        selectedDate,
         totalPrice,
-        {
-          adultMales,
-          adultFemales,
-          couples,
-          childUnder5,
-          child5to8
-        }
+        advanceTotal,
+        remainingAmount,
+        bookingId
       );
 
     } catch (err: any) {
