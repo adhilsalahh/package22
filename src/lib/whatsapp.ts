@@ -135,9 +135,7 @@ export const sendWhatsAppBookingRequest = (
   bookingId: string
 ) => {
   // Build the message with actual newlines, then encode it properly
-  const message = `New Booking Request
-
-Package: ${packageTitle}
+  const message = `Package: ${packageTitle}
 Date: ${bookingDate}
 Members: ${memberCount}
 Guest Name: ${guestName}
@@ -147,12 +145,9 @@ Total Price: ₹${totalPrice.toLocaleString()}
 Advance Required: ₹${advanceRequired.toLocaleString()}
 Remaining: ₹${remainingAmount.toLocaleString()}
 --------------------------------
-Booking ID: ${bookingId.substring(0, 8)}
-
-Please confirm availability and share payment details.`;
+Booking ID: \`${bookingId.substring(0, 8).toUpperCase()}\``;
 
   // Use encodeURIComponent for proper URL encoding
   const url = `https://wa.me/${ADMIN_WHATSAPP}?text=${encodeURIComponent(message)}`;
   window.open(url, '_blank');
 };
-

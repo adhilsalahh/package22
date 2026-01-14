@@ -86,11 +86,21 @@ export const PackageDetailsPage = ({ packageId, onNavigate }: PackageDetailsPage
   return (
     <div className="min-h-screen bg-gray-50">
       <SEO
-        title={`${pkg.title} | ${pkg.destination} Trekking Package`}
-        description={`${(pkg.description || '').substring(0, 160)}... Book ${pkg.title} in ${pkg.destination}. Price: ₹${pkg.price_per_head}. Duration: ${pkg.duration_days} days.`}
-        keywords={`${pkg.title}, ${pkg.destination} trekking, ${pkg.destination} packages, trekking in ${pkg.destination}, adventure tourism ${pkg.destination}`}
+        title={`${pkg.title} | ${pkg.destination || 'Munnar'} Trekking Package`}
+        description={`Book ${pkg.title} in ${pkg.destination || 'Munnar'}. ₹${pkg.price_per_head}/person. ${pkg.duration_days} days adventure with jeep safari, camping & sunrise view. Official Kerala tourism partner.`}
+        keywords={`${pkg.title}, ${pkg.destination || 'Munnar'} trekking, ${pkg.destination || 'Munnar'} packages, trekking in ${pkg.destination || 'Munnar'}, ${pkg.destination || 'Munnar'} camping, ${pkg.destination || 'Munnar'} jeep safari, adventure tourism Kerala, Munnar packages`}
         image={images[0]}
         url={`/package/${pkg.id}`}
+        type="product"
+        price={Number(pkg.price_per_head)}
+        packageData={{
+          name: pkg.title,
+          description: pkg.description || `${pkg.title} - ${pkg.duration_days} days trekking adventure in ${pkg.destination || 'Munnar'}`,
+          price: Number(pkg.price_per_head),
+          duration: pkg.duration_days,
+          destination: pkg.destination || 'Munnar',
+          image: images[0] || '/header image.jpg'
+        }}
       />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <button
@@ -105,7 +115,12 @@ export const PackageDetailsPage = ({ packageId, onNavigate }: PackageDetailsPage
           <div className="relative h-96 bg-gray-200">
             <img
               src={images[currentImageIndex]}
-              alt={pkg.title}
+              alt={`${pkg.title} - ${pkg.destination || 'Munnar'} Trekking Package`}
+              width={1200}
+              height={400}
+              loading="eager"
+              fetchPriority="high"
+              decoding="sync"
               className="w-full h-full object-cover"
             />
             {images.length > 1 && (

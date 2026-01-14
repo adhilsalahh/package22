@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase, Package, Booking } from '../../lib/supabase';
-import { sendSpecialPackageInquiry } from '../../lib/whatsapp';
 import { PackageCard } from './PackageCard';
 import { BookingModal } from './BookingModal';
 import { MyBookings } from './MyBookings';
@@ -73,20 +72,22 @@ export function UserDashboard() {
           <div className="flex border-b">
             <button
               onClick={() => setActiveTab('packages')}
-              className={`flex items-center space-x-2 px-6 py-4 font-medium transition ${activeTab === 'packages'
-                ? 'text-blue-600 border-b-2 border-blue-600'
-                : 'text-gray-600 hover:text-gray-900'
-                }`}
+              className={`flex items-center space-x-2 px-6 py-4 font-medium transition ${
+                activeTab === 'packages'
+                  ? 'text-blue-600 border-b-2 border-blue-600'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
             >
               <Plane className="w-5 h-5" />
               <span>Available Packages</span>
             </button>
             <button
               onClick={() => setActiveTab('my-bookings')}
-              className={`flex items-center space-x-2 px-6 py-4 font-medium transition ${activeTab === 'my-bookings'
-                ? 'text-blue-600 border-b-2 border-blue-600'
-                : 'text-gray-600 hover:text-gray-900'
-                }`}
+              className={`flex items-center space-x-2 px-6 py-4 font-medium transition ${
+                activeTab === 'my-bookings'
+                  ? 'text-blue-600 border-b-2 border-blue-600'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
             >
               <Calendar className="w-5 h-5" />
               <span>My Bookings</span>
@@ -111,13 +112,7 @@ export function UserDashboard() {
                       key={pkg.id}
                       package={pkg}
                       onViewDetails={() => navigate(`/package/${pkg.id}`)}
-                      onBook={() => {
-                        if (pkg.is_special_package) {
-                          sendSpecialPackageInquiry(pkg.title, pkg.price_per_head);
-                        } else {
-                          navigate(`/booking/${pkg.id}`);
-                        }
-                      }}
+                      onBook={() => navigate(`/booking/${pkg.id}`)}
                     />
                   ))
                 )}

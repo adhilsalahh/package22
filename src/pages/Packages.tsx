@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { AlertCircle, Loader, Eye } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { Package } from '../lib/supabase';
-import { sendSpecialPackageInquiry } from '../lib/whatsapp';
 
 export function Packages() {
   const navigate = useNavigate();
@@ -105,21 +104,12 @@ export function Packages() {
                       <Eye className="h-4 w-4" />
                       Details
                     </button>
-                    {pkg.is_special_package ? (
-                      <button
-                        onClick={() => sendSpecialPackageInquiry(pkg.title, pkg.price_per_head)}
-                        className="flex-1 py-2.5 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-colors"
-                      >
-                        WhatsApp
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => navigate(`/booking/${pkg.id}`)}
-                        className="flex-1 py-2.5 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
-                      >
-                        Book Now
-                      </button>
-                    )}
+                    <button
+                      onClick={() => navigate(`/booking/${pkg.id}`)}
+                      className="flex-1 py-2.5 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                    >
+                      Book Now
+                    </button>
                   </div>
                 </div>
               </div>

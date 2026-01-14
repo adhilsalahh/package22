@@ -1,5 +1,5 @@
 import { Package } from '../../lib/supabase';
-import { Calendar, MapPin, Clock, Users, Check, Eye, Phone } from 'lucide-react';
+import { Calendar, MapPin, Clock, Users, Check, Eye } from 'lucide-react';
 
 type PackageCardProps = {
   package: Package;
@@ -99,16 +99,9 @@ export function PackageCard({ package: pkg, onViewDetails, onBook }: PackageCard
             </button>
             <button
               onClick={onBook}
-              className={`flex-1 py-2.5 ${pkg.is_special_package ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'} text-white rounded-lg font-semibold transition-colors flex items-center justify-center gap-2`}
+              className="flex-1 py-2.5 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
             >
-              {pkg.is_special_package ? (
-                <>
-                  <Phone className="h-4 w-4" />
-                  WhatsApp
-                </>
-              ) : (
-                'Book Now'
-              )}
+              Book Now
             </button>
           </div>
         </div>

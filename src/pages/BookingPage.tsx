@@ -203,22 +203,7 @@ const BookingPage = () => {
         { booking_id: bookingId, member_name: member1.name, member_phone: member1.phone }
       ]);
 
-      // Mark the selected date as sold out (same as online booking)
-      const { error: soldOutError } = await supabase
-        .from('package_soldout_dates')
-        .insert({
-          package_id: pkg.id,
-          soldout_date: selectedDate
-        });
-
-      // If the date is already sold out (duplicate), we can ignore the error
-      if (soldOutError && !soldOutError.message.includes('duplicate')) {
-        console.warn('Could not mark date as sold out:', soldOutError);
-      }
-
-      // Calculate remaining amount
       const remainingAmount = totalPrice - advanceTotal;
-
       sendWhatsAppBookingRequest(
         pkg.title,
         selectedDate,

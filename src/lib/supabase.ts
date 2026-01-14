@@ -28,7 +28,6 @@ export interface Package {
   contact_info?: any;
   details?: any;
   is_active: boolean;
-  is_special_package?: boolean;
   created_at: string;
   updated_at: string;
 }

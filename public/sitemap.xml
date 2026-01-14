@@ -1,30 +1,97 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+  
+  <!-- Homepage - Highest Priority -->
   <url>
     <loc>https://vaorutrippadikkam.com/</loc>
-    <lastmod>2025-12-15</lastmod>
+    <lastmod>2026-01-14</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
+    <image:image>
+      <image:loc>https://vaorutrippadikkam.com/header%20image.jpg</image:loc>
+      <image:title>Kolukkumalai Trekking Munnar</image:title>
+      <image:caption>Best Kolukkumalai trekking and camping packages in Munnar</image:caption>
+    </image:image>
   </url>
+  
+  <!-- Packages Page -->
   <url>
     <loc>https://vaorutrippadikkam.com/packages</loc>
-    <lastmod>2025-12-15</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
+    <lastmod>2026-01-14</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
   </url>
+  
+  <!-- Kolukkumalai Trekking Package (Tent Stay) -->
+  <url>
+    <loc>https://vaorutrippadikkam.com/package/kolukkumalai-trekking-tent-stay</loc>
+    <lastmod>2026-01-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://vaorutrippadikkam.com/Kolukumalai1.jpg</image:loc>
+      <image:title>Kolukkumalai Trekking Tent Stay Package</image:title>
+      <image:caption>Experience camping under the stars at Kolukkumalai</image:caption>
+    </image:image>
+  </url>
+  
+  <!-- Kolukkumalai Trekking Package (Cabin Stay) -->
+  <url>
+    <loc>https://vaorutrippadikkam.com/package/kolukkumalai-trekking-cabin-stay</loc>
+    <lastmod>2026-01-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://vaorutrippadikkam.com/kolukumalai4.jpg</image:loc>
+      <image:title>Kolukkumalai Cabin Stay Package</image:title>
+      <image:caption>Comfortable cabin accommodation at Kolukkumalai</image:caption>
+    </image:image>
+  </url>
+  
+  <!-- Meeshapulimala Trekking Package -->
+  <url>
+    <loc>https://vaorutrippadikkam.com/package/meeshapulimala-trekking</loc>
+    <lastmod>2026-01-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://vaorutrippadikkam.com/meeshapulimala_header1.jpg</image:loc>
+      <image:title>Meeshapulimala Trekking Package</image:title>
+      <image:caption>Trek to the second highest peak in Western Ghats</image:caption>
+    </image:image>
+  </url>
+  
+  <!-- Contact Page -->
+  <url>
+    <loc>https://vaorutrippadikkam.com/contact</loc>
+    <lastmod>2026-01-14</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <!-- Login Page -->
   <url>
     <loc>https://vaorutrippadikkam.com/login</loc>
+    <lastmod>2026-01-14</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
+    <priority>0.4</priority>
   </url>
+  
+  <!-- Signup Page -->
   <url>
     <loc>https://vaorutrippadikkam.com/signup</loc>
+    <lastmod>2026-01-14</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
+    <priority>0.4</priority>
   </url>
+  
+  <!-- My Bookings Page -->
   <url>
     <loc>https://vaorutrippadikkam.com/my-bookings</loc>
+    <lastmod>2026-01-14</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
+    <priority>0.5</priority>
   </url>
+
 </urlset>

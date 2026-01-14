@@ -6,6 +6,7 @@ import { packageService } from '../services/packageService';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { SEO } from '../components/SEO';
+import { preloadImage } from '../components/OptimizedImage';
 
 export const HomePage = () => {
   const navigate = useNavigate();
@@ -36,6 +37,12 @@ export const HomePage = () => {
       setLoading(false);
     }
   };
+
+  // Preload hero image for LCP optimization
+  useEffect(() => {
+    const heroImg = siteSettings?.hero_image_url || '/header image.jpg';
+    preloadImage(heroImg);
+  }, [siteSettings]);
 
   // Fallback defaults matching your original design
   const defaultGallery = [
@@ -84,9 +91,9 @@ export const HomePage = () => {
   return (
     <div className="min-h-screen bg-white" style={customStyle}>
       <SEO
-        title="Kolukkumalai Packages in Munnar | Best Trekking Experience"
-        description="Book the best Kolukkumalai packages in Munnar. Experience sunrise treks, jeep safaris, and camping at Kolukkumalai with the official tourism promoter."
-        keywords="Kolukkumalai packages, Munnar trekking, Kolukkumalai sunrise, jeep safari munnar, camping in munnar, adventure tourism kerala"
+        title="Kolukkumalai Packages in Munnar | Best Trekking & Camping"
+        description="Book the best Kolukkumalai trekking packages in Munnar. Official tourism promoter offering sunrise treks, jeep safari, tent stay & camping. Starting from ₹1500. Call +91 7592049934"
+        keywords="Kolukkumalai packages, Kolukkumalai trekking, Munnar packages, Kolukkumalai sunrise, Kolukkumalai jeep safari, Kolukkumalai camping, Kolukkumalai tent stay, Meeshapulimala trekking, Munnar trekking packages, adventure tourism Kerala, best trekking in Munnar"
         url="/"
       />
       {/* ✅ SIGNUP WARNING BANNER */}
@@ -153,7 +160,12 @@ export const HomePage = () => {
                 <div className="relative bg-white rounded-3xl shadow-2xl overflow-hidden transform hover:scale-105 transition-transform duration-500">
                   <img
                     src={heroImage}
-                    alt="Adventure"
+                    alt="Kolukkumalai Sunrise Trekking Adventure in Munnar"
+                    width={800}
+                    height={500}
+                    loading="eager"
+                    fetchPriority="high"
+                    decoding="sync"
                     className="w-full h-64 sm:h-80 md:h-96 lg:h-[500px] object-cover object-center"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
@@ -198,7 +210,11 @@ export const HomePage = () => {
                   <div className="relative h-56 sm:h-64 md:h-72 overflow-hidden">
                     <img
                       src={pkg.image_url || 'https://images.pexels.com/photos/2437291/pexels-photo-2437291.jpeg'}
-                      alt={pkg.title}
+                      alt={`${pkg.title} - ${pkg.destination} Trekking Package`}
+                      width={400}
+                      height={300}
+                      loading="lazy"
+                      decoding="async"
                       className="w-full h-full object-cover object-center group-hover:scale-110 transition-transform duration-700"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
@@ -345,7 +361,11 @@ export const HomePage = () => {
               >
                 <img
                   src={image.image_url || image.url}
-                  alt={image.title || 'Adventure Image'}
+                  alt={image.title || 'Kolukkumalai Adventure Gallery'}
+                  width={400}
+                  height={300}
+                  loading="lazy"
+                  decoding="async"
                   className="w-full h-full object-cover object-center group-hover:scale-110 transition-transform duration-700"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-60 group-hover:opacity-90 transition-opacity"></div>
